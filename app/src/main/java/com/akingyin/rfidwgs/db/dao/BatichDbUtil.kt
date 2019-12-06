@@ -46,4 +46,8 @@ object BatichDbUtil {
             set(Calendar.SECOND,0)
         }.timeInMillis
     }
+
+    fun    onValRfid(rfid:String):Boolean{
+       return getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.Rfid.eq(rfid)).limit(1).list().size>0
+    }
 }

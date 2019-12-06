@@ -9,7 +9,6 @@ import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.ui.adapter.BatchListAdapter
 import com.akingyin.rfidwgs.util.DialogUtil
 import kotlinx.android.synthetic.main.activity_batch_list.*
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -83,13 +82,14 @@ class BatchListActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        GlobalScope.launch(IO) {
-            val  result = BatichDbUtil.findAllBatich()
-            launch (Main){
-                batchListAdapter.setNewData(result)
-            }
+        GlobalScope.launch(Main) {
+            batchListAdapter.setNewData(getBatchList())
         }
 
+    }
+
+    suspend fun   getBatchList():List<Batch>{
+        return BatichDbUtil.findAllBatich()
     }
 
     override fun handTag(rfid: String, block0: String?) {

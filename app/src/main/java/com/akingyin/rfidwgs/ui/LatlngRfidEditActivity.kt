@@ -17,18 +17,18 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
 import com.afollestad.materialdialogs.MaterialDialog
+import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.db.dao.LatLngRfidDao
 import com.akingyin.rfidwgs.db.vo.LatLngVo
-import com.akingyin.rfidwgs.ext.spGetFloat
-import com.akingyin.rfidwgs.ext.spGetInt
-import com.akingyin.rfidwgs.ext.spSetFloat
-import com.akingyin.rfidwgs.ext.spSetInt
+import com.akingyin.rfidwgs.ext.*
+import com.akingyin.rfidwgs.util.DialogUtil
 import com.akingyin.rfidwgs.util.HtmlUtils
 import com.akingyin.rfidwgs.util.RxUtil
+import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_rfid_latlng_edit.*
@@ -91,10 +91,12 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
         btn_delect_latlng.setOnClickListener {
             cacheLatlngs.clear()
             averageLatlng = LatLngVo()
+            repeatCount = 0
+            currentLatlng = null
             btn_lat_lng.tag="0"
             btn_lat_lng.text="开始定位"
-            btn_delect_latlng.visibility =View.GONE
-            btn_lat_lng.visibility = View.GONE
+            btn_delect_latlng.visibility =View.VISIBLE
+            btn_lat_lng.visibility = View.VISIBLE
             initLocationInfo()
 
 
@@ -125,18 +127,33 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
         }
         cacheLatlngs.clear()
         averageLatlng = LatLngVo()
-        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,2000,0F, this)
-        btn_lat_lng.tag="1"
-        btn_lat_lng.text="定位中.."
-        mDisposable?.dispose()
-        initLocationInfo()
-        onStartTime()
+        var  rxPermissions = RxPermissions(this)
+                .request(Manifest.permission.ACCESS_FINE_LOCATION)
+                .subscribe({
+                    if(it){
+                        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
+                        if(BuildConfig.DEBUG){
+                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,2000,0F, this)
+                        }else{
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,2000,0F, this)
+                        }
+                        btn_lat_lng.tag="1"
+                        btn_lat_lng.text="定位中.."
+                        mDisposable?.dispose()
+                        initLocationInfo()
+                        onStartTime()
+                    }else{
+                        showMsg("请给必要的权限")
+                    }
+                },{
+                    it.printStackTrace()
+                })
+
     }
 
 
-    fun   initLocationInfo(){
-        var  stringBuilder = StringBuilder("缓存数：").append(cacheLatlngs.size)
+    private fun   initLocationInfo(){
+        val  stringBuilder = StringBuilder("缓存数：").append(cacheLatlngs.size)
                 .append("<br>").append("平均lat：").append(averageLatlng.lat).append("<br>")
                 .append("平均lng：").append(averageLatlng.lng)
                 .append("<br>重复数：").append(repeatCount)
@@ -191,6 +208,10 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     override fun handTag(rfid: String, block0: String?) {
         val   tag = btn_lat_lng.tag.toString()
         if(tag == "2"){
+            if(BatichDbUtil.onValRfid(rfid)){
+                showMsg("当前标签信息已被使用！")
+                return
+            }
             tv_rfid.text = MessageFormat.format("标定ID：{0}",rfid)
             if(null == latLngRfid || null == latLngRfid?.id){
                 latLngRfid = LatLngRfid().apply {
@@ -199,10 +220,27 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                     operationTime = System.currentTimeMillis()
                     this.rfid = rfid
                 }
+                latLngRfid?.batchId = batchId
+                BatichDbUtil.getLatlngRfidDao().save(latLngRfid)
+                initBatchInfo(batch!!)
+                showMsg("保存成功！")
+            }else{
+                DialogUtil.showConfigDialog(this,"确定要替换当前标签？"){
+                    if(it){
+                        latLngRfid?.apply {
+                            this.rfid = rfid
+                            operationTime = currentTimeMillis
+                            uploadTime = 0
+                            exportTime = 0
+                            BatichDbUtil.getLatlngRfidDao().save(this)
+                            showMsg("更换电子身分成功")
+                        }
+
+
+                    }
+                }
             }
-            latLngRfid?.batchId = batchId
-            BatichDbUtil.getLatlngRfidDao().save(latLngRfid)
-            showMsg("保存成功！")
+
         }
 
 
@@ -249,6 +287,11 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                     repeatCount++
                     if(repeatCount>= MAX_REPEAT_LATLNG){
                         btn_lat_lng.tag = "2"
+                        averageLatlng = LatLngVo(latlng.latitude,latlng.longitude)
+                        cacheLatlngs.clear()
+                        for (index in 1..MAX_LATLNG){
+                            cacheLatlngs.add(LatLngVo(latlng.latitude,latlng.longitude))
+                        }
                         onStopLocation()
                     }
                 }else{
@@ -287,8 +330,12 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
 
 
     private   fun   showSettingDialog(){
+        val   view  = layoutInflater.inflate(R.layout.custiom_dialog_setting,null)
+          view.findViewById<AppCompatEditText>(R.id.edit_max_accuracy).setText(MAX_ACCURACY.toString())
+          view.findViewById<AppCompatEditText>(R.id.edit_max_repeat).setText(MAX_REPEAT_LATLNG.toString())
+          view.findViewById<AppCompatEditText>(R.id.edit_max_loc).setText(MAX_LATLNG.toString())
         MaterialDialog.Builder(this).title("定位参数设置")
-                .customView(R.layout.custiom_dialog_setting,true)
+                .customView(view,true)
                 .positiveText("确定")
                 .negativeText("取消")
                 .autoDismiss(true)
@@ -309,7 +356,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                       MAX_ACCURACY = accuracy.text.toString().trim().toFloat()
                       spSetFloat("max_accuracy",MAX_ACCURACY)
                   }
-                }
+                }.show()
     }
 
     override fun onDestroy() {

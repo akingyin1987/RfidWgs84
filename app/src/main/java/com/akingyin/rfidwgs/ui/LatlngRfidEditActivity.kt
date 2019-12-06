@@ -10,15 +10,23 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Html
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
+import com.afollestad.materialdialogs.MaterialDialog
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.db.dao.LatLngRfidDao
 import com.akingyin.rfidwgs.db.vo.LatLngVo
+import com.akingyin.rfidwgs.ext.spGetFloat
+import com.akingyin.rfidwgs.ext.spGetInt
+import com.akingyin.rfidwgs.ext.spSetFloat
+import com.akingyin.rfidwgs.ext.spSetInt
 import com.akingyin.rfidwgs.util.HtmlUtils
 import com.akingyin.rfidwgs.util.RxUtil
 import io.reactivex.Observable
@@ -38,6 +46,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
 
     var  MAX_LATLNG = 30
     var  MAX_REPEAT_LATLNG = 15
+    var  MAX_ACCURACY = 5F
 
     var   batchId : Long = 0L
 
@@ -59,6 +68,11 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     var   currentLatlng : Location?= null
 
     override fun initView() {
+        setToolBar(toolbar,"定位与标签")
+        MAX_LATLNG = spGetInt("max_latlng",30)
+        MAX_REPEAT_LATLNG = spGetInt("max_repeat_latlng",15)
+        MAX_ACCURACY = spGetFloat("max_accuracy",5F)
+        batchId = intent.getLongExtra("batchId",0)
         batch = BatichDbUtil.getBatichDao().load(batchId)
         if(null == batch){
             showMsg("数据出错了")
@@ -90,7 +104,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     }
 
 
-    fun    initBatchInfo(batch: Batch){
+   private fun    initBatchInfo(batch: Batch){
         batch.todayTotal = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.OperationTime.gt(BatichDbUtil.getTodayStartTime()),LatLngRfidDao.Properties.BatchId.eq(batchId)).buildCount().count().toInt()
         batch.total = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(batchId)).buildCount().count().toInt()
         batch.uploadedTotal = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.UploadTime.gt(0),LatLngRfidDao.Properties.BatchId.eq(batchId)).buildCount().count().toInt()
@@ -102,7 +116,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     }
 
 
-    fun   onStartLocation(){
+   private fun   onStartLocation(){
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -117,7 +131,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
         btn_lat_lng.text="定位中.."
         mDisposable?.dispose()
         initLocationInfo()
-
+        onStartTime()
     }
 
 
@@ -142,7 +156,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
 
     private   var   mDisposable :Disposable?= null
     private   var   startTime :Long  = 0
-    fun   onStartTime(){
+   private  fun   onStartTime(){
          startTime = System.currentTimeMillis()
          mDisposable = Observable.interval(1,TimeUnit.SECONDS)
                  .compose(RxUtil.IO_Main())
@@ -153,7 +167,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                  })
     }
 
-    fun   onStopLocation(){
+    private fun   onStopLocation(){
 
           val  tag  = btn_lat_lng.tag
           if(tag == "1"){
@@ -178,18 +192,19 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
         val   tag = btn_lat_lng.tag.toString()
         if(tag == "2"){
             tv_rfid.text = MessageFormat.format("标定ID：{0}",rfid)
-        }
-        if(null == latLngRfid || null == latLngRfid?.id){
-           latLngRfid = LatLngRfid().apply {
-                wgsLat = averageLatlng.lat
-                wgsLng = averageLatlng.lng
-                operationTime = System.currentTimeMillis()
-                this.rfid = rfid
+            if(null == latLngRfid || null == latLngRfid?.id){
+                latLngRfid = LatLngRfid().apply {
+                    wgsLat = averageLatlng.lat
+                    wgsLng = averageLatlng.lng
+                    operationTime = System.currentTimeMillis()
+                    this.rfid = rfid
+                }
             }
+            latLngRfid?.batchId = batchId
+            BatichDbUtil.getLatlngRfidDao().save(latLngRfid)
+            showMsg("保存成功！")
         }
-        latLngRfid?.batchId = batchId
-        BatichDbUtil.getLatlngRfidDao().save(latLngRfid)
-        showMsg("保存成功！")
+
 
     }
 
@@ -211,7 +226,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
 
     override fun onLocationChanged(location: Location?) {
         location?.let {
-            if(it.accuracy <= 500){
+            if(it.accuracy <= MAX_ACCURACY){
                 cacheLatlngs.add(LatLngVo(it.latitude,it.longitude))
                 var lat = 0.0
                 var lng = 0.0
@@ -252,6 +267,49 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     }
 
     override fun onProviderDisabled(provider: String?) {
+    }
+
+
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_rfid_latlng, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId){
+            R.id.action_setting ->  {
+                showSettingDialog()
+            }
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+
+    private   fun   showSettingDialog(){
+        MaterialDialog.Builder(this).title("定位参数设置")
+                .customView(R.layout.custiom_dialog_setting,true)
+                .positiveText("确定")
+                .negativeText("取消")
+                .autoDismiss(true)
+                .onPositive { dialog, which ->
+                  val editLoc =  dialog.findViewById(R.id.edit_max_loc) as AppCompatEditText
+                  if(editLoc.text.toString().trim().isNotEmpty()){
+                      MAX_LATLNG = editLoc.text.toString().trim().toInt()
+                      spSetInt("max_latlng",MAX_LATLNG)
+                  }
+                  val repeat  = dialog.findViewById(R.id.edit_max_repeat) as AppCompatEditText
+                   if(repeat.text.toString().trim().isNotEmpty()){
+                       MAX_REPEAT_LATLNG = repeat.text.toString().trim().toInt()
+                       spSetInt("max_repeat_latlng",MAX_REPEAT_LATLNG)
+                   }
+
+                  val  accuracy  = dialog.findViewById(R.id.edit_max_accuracy) as AppCompatEditText
+                  if(accuracy.text.toString().trim().isNotEmpty()){
+                      MAX_ACCURACY = accuracy.text.toString().trim().toFloat()
+                      spSetFloat("max_accuracy",MAX_ACCURACY)
+                  }
+                }
     }
 
     override fun onDestroy() {

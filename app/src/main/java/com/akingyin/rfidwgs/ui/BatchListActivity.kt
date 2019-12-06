@@ -1,5 +1,6 @@
 package com.akingyin.rfidwgs.ui
 
+import android.content.Intent
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.akingyin.rfidwgs.R
@@ -35,8 +36,14 @@ class BatchListActivity : BaseActivity() {
         recycler.itemAnimator = DefaultItemAnimator()
         recycler.adapter = batchListAdapter
 
-        batchListAdapter.setOnItemClickListener { adapter, view, position ->
+        batchListAdapter.setOnItemClickListener { _, _, position ->
+            batchListAdapter.getItem(position)?.apply {
 
+                startActivity(Intent(this@BatchListActivity,LatlngRfidEditActivity::class.java).apply {
+
+                    putExtra("batchId",id)
+                })
+            }
         }
 
         batchListAdapter.setOnItemLongClickListener { _, _, position ->

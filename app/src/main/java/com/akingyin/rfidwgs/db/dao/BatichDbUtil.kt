@@ -1,6 +1,7 @@
 package com.akingyin.rfidwgs.db.dao
 
 import com.akingyin.rfidwgs.db.Batch
+import com.akingyin.rfidwgs.db.LatLngRfid
 import java.util.*
 
 /**
@@ -49,5 +50,16 @@ object BatichDbUtil {
 
     fun    onValRfid(rfid:String):Boolean{
        return getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.Rfid.eq(rfid)).limit(1).list().size>0
+    }
+
+    fun   findRfidEntityByRfid(rfid: String):LatLngRfid?{
+        return getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.Rfid.eq(rfid)).limit(1).list().let {
+            if(it.size>0){
+              return@let it[0]
+            }
+            return@let null
+
+        }
+
     }
 }

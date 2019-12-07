@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.StackingBehavior
 import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
@@ -26,12 +27,16 @@ import com.akingyin.rfidwgs.db.dao.LatLngRfidDao
 import com.akingyin.rfidwgs.db.vo.LatLngVo
 import com.akingyin.rfidwgs.ext.*
 import com.akingyin.rfidwgs.util.DialogUtil
+import com.akingyin.rfidwgs.util.ExcelUtil
 import com.akingyin.rfidwgs.util.HtmlUtils
 import com.akingyin.rfidwgs.util.RxUtil
 import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_rfid_latlng_edit.*
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.text.MessageFormat
 import java.util.concurrent.TimeUnit
 
@@ -133,9 +138,9 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                     if(it){
                         //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
                         if(BuildConfig.DEBUG){
-                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,2000,0F, this)
+                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,400,0F, this)
                         }else{
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,2000,0F, this)
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,400,0F, this)
                         }
                         btn_lat_lng.tag="1"
                         btn_lat_lng.text="定位中.."
@@ -263,6 +268,7 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     }
 
     override fun onLocationChanged(location: Location?) {
+        println("onLocationChanged")
         location?.let {
             if(it.accuracy <= MAX_ACCURACY){
                 cacheLatlngs.add(LatLngVo(it.latitude,it.longitude))
@@ -304,12 +310,15 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
     }
 
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+        println("onStatusChanged")
     }
 
     override fun onProviderEnabled(provider: String?) {
+        println("onProviderEnabled")
     }
 
     override fun onProviderDisabled(provider: String?) {
+        println("onProviderDisabled")
     }
 
 
@@ -324,8 +333,36 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
             R.id.action_setting ->  {
                 showSettingDialog()
             }
+            R.id.action_export ->{
+                onExportData()
+            }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private   fun onExportData(){
+        val  data = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.ExportTime.le(0),LatLngRfidDao.Properties.BatchId.eq(batchId)).list()
+        if(data.isEmpty()){
+            showMsg("当前批次没有可以导出的数据")
+            return
+        }
+        GlobalScope.launch(Main) {
+             val dialog = MaterialDialog.Builder(this@LatlngRfidEditActivity).autoDismiss(true)
+                    .progress(false,0)
+                     .stackingBehavior(StackingBehavior.ADAPTIVE)
+                    .show()
+            ExcelUtil.onExportExcel(data,batch!!){
+                result,error->
+                if(result){
+                    showMsg("导出成功")
+                }else{
+                    showMsg("导出失败,$error")
+                }
+            }
+            dialog.hide()
+
+        }
+
     }
 
 

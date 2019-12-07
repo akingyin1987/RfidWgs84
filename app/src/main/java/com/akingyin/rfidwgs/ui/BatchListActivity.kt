@@ -3,6 +3,7 @@ package com.akingyin.rfidwgs.ui
 import android.content.Intent
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.afollestad.materialdialogs.MaterialDialog
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
@@ -93,5 +94,14 @@ class BatchListActivity : BaseActivity() {
     }
 
     override fun handTag(rfid: String, block0: String?) {
+        BatichDbUtil.findRfidEntityByRfid(rfid)?.let {
+            MaterialDialog.Builder(this).title("操作")
+                    .content("已查到当前标签：${rfid},请选择以下操作！")
+                    .neutralText("取消")
+                    .negativeText("删除")
+                    .positiveText("修改")
+                    .show()
+        }?:showMsg("当前标签未在终端数据中查询到！")
+
     }
 }

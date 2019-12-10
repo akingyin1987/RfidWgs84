@@ -124,6 +124,17 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
 
 
    private fun   onStartLocation(){
+         var  tagStr = btn_lat_lng.tag.toString()
+         if(tagStr == "1"){
+             mDisposable?.dispose()
+             btn_lat_lng.tag="0"
+             btn_lat_lng.text="开始定位"
+             cacheLatlngs.clear()
+             averageLatlng = LatLngVo()
+             onStopLocation()
+             showMsg("定位已取消！")
+             return
+         }
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -138,9 +149,9 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                     if(it){
                         //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
                         if(BuildConfig.DEBUG){
-                            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,400,0F, this)
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,20,0F, this)
                         }else{
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,400,0F, this)
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,20,0F, this)
                         }
                         btn_lat_lng.tag="1"
                         btn_lat_lng.text="定位中.."
@@ -286,25 +297,27 @@ class LatlngRfidEditActivity :BaseActivity(), LocationListener {
                     onStopLocation()
 
                 }
-            }
-            currentLatlng?.let {
-                latlng->
-                if(it.latitude == latlng.latitude && it.longitude == latlng.longitude){
-                    repeatCount++
-                    if(repeatCount>= MAX_REPEAT_LATLNG){
-                        btn_lat_lng.tag = "2"
-                        averageLatlng = LatLngVo(latlng.latitude,latlng.longitude)
-                        cacheLatlngs.clear()
-                        for (index in 1..MAX_LATLNG){
-                            cacheLatlngs.add(LatLngVo(latlng.latitude,latlng.longitude))
+                currentLatlng?.let {
+                    latlng->
+                    if(it.latitude == latlng.latitude && it.longitude == latlng.longitude){
+                        repeatCount++
+                        if(repeatCount>= MAX_REPEAT_LATLNG){
+                            btn_lat_lng.tag = "2"
+                            averageLatlng = LatLngVo(latlng.latitude,latlng.longitude)
+                            cacheLatlngs.clear()
+                            for (index in 1..MAX_LATLNG){
+                                cacheLatlngs.add(LatLngVo(latlng.latitude,latlng.longitude))
+                            }
+                            onStopLocation()
                         }
-                        onStopLocation()
+                    }else{
+                        repeatCount=0
                     }
-                }else{
-                    repeatCount=0
                 }
             }
+
             currentLatlng = it
+            println("it.=${it.toString()}")
             initLocationInfo()
         }
     }

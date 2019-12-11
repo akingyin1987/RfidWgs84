@@ -18,6 +18,7 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.StackingBehavior
+import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
@@ -30,10 +31,7 @@ import com.bleqpp.BleQppNfcCameraServer
 import com.bleqpp.KsiSharedStorageHelper
 import com.bleqpp.QppBleDeviceListActivity
 import com.tbruyelle.rxpermissions2.RxPermissions
-import com.tencent.map.geolocation.TencentLocation
-import com.tencent.map.geolocation.TencentLocationListener
-import com.tencent.map.geolocation.TencentLocationManager
-import com.tencent.map.geolocation.TencentLocationRequest
+
 import com.zlcdgroup.nfcsdk.ConStatus
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
@@ -51,7 +49,7 @@ import java.util.concurrent.TimeUnit
  * @ Date 2019/12/6 16:01
  * @version V1.0
  */
-class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocationListener {
+class LatlngRfidEditActivity : BaseActivity(), LocationListener {
 
     var MAX_LATLNG = 30
     var MAX_REPEAT_LATLNG = 15
@@ -138,22 +136,25 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocation
         val mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this))
         tv_ble_addr.text=MessageFormat.format("读卡器地址：{0}",mac)
         BLE_NFC_CARD = spGetInt("ble_cardread")
-
+        println("ble=$BLE_NFC_CARD")
         sc_setting_ble.setOnCheckedChangeListener { _, isChecked ->
 
 
-            initBleInfo()
             if(isChecked){
                 spSetInt("ble_cardread",1)
                 BLE_NFC_CARD =1
-                BleQppNfcCameraServer.getInstance(this).connect(null)
+                BleQppNfcCameraServer.getInstance(this).onregistered(this)
+
+                BleQppNfcCameraServer.getInstance(this).connect(mac)
             }else{
                 spSetInt("ble_cardread",0)
                 BLE_NFC_CARD =0
                 BleQppNfcCameraServer.getInstance(this).connectDestroy()
 
             }
+            initBleInfo()
         }
+        initBleInfo()
         tv_ble_addr.setOnClickListener {
             startActivity(Intent(this,QppBleDeviceListActivity::class.java))
         }
@@ -163,20 +164,20 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocation
 
 
     private   fun  onStartTencentLocation(){
-        val request = TencentLocationRequest.create().apply {
-            interval = 2000
-        }
-        val mLocationManager = TencentLocationManager.getInstance(this)
-        mLocationManager.removeUpdates(null)
-        mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_WGS84
-       var error =  mLocationManager.requestLocationUpdates(request,this)
-       if(error != 0){
-           showMsg("注册定位失败，代码：$error")
-       }
+//        val request = TencentLocationRequest.create().apply {
+//            interval = 2000
+//        }
+//        val mLocationManager = TencentLocationManager.getInstance(this)
+//        mLocationManager.removeUpdates(null)
+//        mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_WGS84
+//       var error =  mLocationManager.requestLocationUpdates(request,this)
+//       if(error != 0){
+//           showMsg("注册定位失败，代码：$error")
+//       }
     }
 
     private   fun   onStopTencentLocation(){
-        TencentLocationManager.getInstance(this).removeUpdates(null)
+//        TencentLocationManager.getInstance(this).removeUpdates(null)
     }
 
     private   fun  initBleInfo(){
@@ -229,12 +230,12 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocation
                 .request(Manifest.permission.ACCESS_FINE_LOCATION)
                 .subscribe({
                     if (it) {
-//                        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
-//                        if (BuildConfig.DEBUG) {
-//                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
-//                        } else {
-//                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
-//                        }
+                        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
+                        if (BuildConfig.DEBUG) {
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
+                        } else {
+                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
+                        }
                         onStartTencentLocation()
                         btn_lat_lng.tag = "1"
                         btn_lat_lng.text = "定位中.."
@@ -310,7 +311,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocation
         initLocationInfo()
         mDisposable?.dispose()
         onStopTencentLocation()
-       // locationManager.removeUpdates(this)
+        locationManager.removeUpdates(this)
     }
 
     override fun handTag(rfid: String, block0: String?) {
@@ -557,22 +558,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocation
         tv_ble_elect.text=MessageFormat.format("电量：{0}%",elect)
     }
 
-    override fun onLocationChanged(location: TencentLocation?, error: Int, reason: String?) {
-        if(error == TencentLocation.ERROR_OK){
-            location?.let {
-                onLocationChanged(Location(LocationManager.GPS_PROVIDER).apply {
-                    latitude = it.latitude
-                    longitude = it.longitude
-                    accuracy = it.accuracy
 
-                })
-            }
-        }
-
-    }
-
-    override fun onStatusUpdate(name: String?, status: Int, desc: String?) {
-    }
 
     override fun onDestroy() {
         onStopLocation()

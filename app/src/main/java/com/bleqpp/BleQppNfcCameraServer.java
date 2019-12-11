@@ -450,7 +450,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
     }
 
     if (mBluetoothAdapter == null || address == null || TextUtils.isEmpty(address)) {
-      System.out.println("BluetoothAdapter not initialized or unspecified address.");
+      System.out.println("BluetoothAdapter not initialized or unspecified address."+address);
       Log.w("Qn Dbg",
           "BluetoothAdapter not initialized or unspecified address.");
       setConnectBleStatus(ConStatus.NONE);

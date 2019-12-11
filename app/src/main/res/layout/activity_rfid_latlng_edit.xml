@@ -42,7 +42,8 @@
           android:layout_height="wrap_content"
           android:orientation="horizontal">
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textColor="@color/black_de"
             android:textSize="18sp"
@@ -53,7 +54,8 @@
             android:id="@+id/tv_ble_status"/>
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textColor="@color/black_de"
             android:textSize="18sp"

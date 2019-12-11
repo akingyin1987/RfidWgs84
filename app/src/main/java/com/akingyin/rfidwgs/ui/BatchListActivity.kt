@@ -9,6 +9,7 @@ import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.ui.adapter.BatchListAdapter
 import com.akingyin.rfidwgs.util.DialogUtil
+import com.zlcdgroup.nfcsdk.ConStatus
 import kotlinx.android.synthetic.main.activity_batch_list.*
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.GlobalScope
@@ -103,5 +104,11 @@ class BatchListActivity : BaseActivity() {
                     .show()
         }?:showMsg("当前标签未在终端数据中查询到！")
 
+    }
+
+    override fun handleConnectStatus(conSttus: ConStatus) {
+    }
+
+    override fun handleElectricity(elect: Int) {
     }
 }

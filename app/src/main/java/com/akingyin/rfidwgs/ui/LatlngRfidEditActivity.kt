@@ -137,11 +137,18 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
         BLE_NFC_CARD = spGetInt("ble_cardread")
 
         sc_setting_ble.setOnCheckedChangeListener { _, isChecked ->
-            spSetInt("ble_cardread",if(isChecked){1}else{0})
-            BLE_NFC_CARD =if(isChecked){1}else{0}
+
+
             initBleInfo()
-            if(!isChecked){
+            if(isChecked){
+                spSetInt("ble_cardread",1)
+                BLE_NFC_CARD =1
+                BleQppNfcCameraServer.getInstance(this).connect(null)
+            }else{
+                spSetInt("ble_cardread",0)
+                BLE_NFC_CARD =0
                 BleQppNfcCameraServer.getInstance(this).connectDestroy()
+
             }
         }
         tv_ble_addr.setOnClickListener {

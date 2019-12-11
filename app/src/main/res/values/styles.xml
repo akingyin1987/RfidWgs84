@@ -14,5 +14,5 @@
 
     <item name="android:windowIsTranslucent">true</item>
   </style>
-
+  <style name="Ble.AppBaseTheme" parent="android:Theme.Light"/>
 </resources>

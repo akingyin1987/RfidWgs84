@@ -22,7 +22,100 @@
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
   </com.google.android.material.appbar.AppBarLayout>
 
+  <androidx.cardview.widget.CardView
+      android:orientation="vertical"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      app:cardCornerRadius="5dp"
+      android:foreground="?attr/selectableItemBackground"
+      android:layout_margin="5dp"
+      app:cardElevation="5dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="2dp"
+        android:layout_margin="2dp"
+        android:orientation="vertical">
 
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_de"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:tag="0"
+            android:text="连接状态"
+            android:visibility="gone"
+            android:id="@+id/tv_ble_status"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_de"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:tag="0"
+            android:text="电量："
+            android:visibility="gone"
+            android:id="@+id/tv_ble_elect"/>
+      </LinearLayout>
+
+      <View
+          android:layout_width="match_parent"
+          android:layout_height="1dp"
+          android:layout_marginTop="2dp"
+          android:layout_marginBottom="2dp"
+          android:background="@color/diy_gray2"/>
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_de"
+            android:textSize="18sp"
+            android:layout_gravity="center"
+            android:textStyle="bold"
+            android:text="外置读卡器设置:"
+            android:id="@+id/tv_ble_setting"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/sc_setting_ble"
+            android:layout_marginLeft="10dp"
+
+            />
+      </LinearLayout>
+
+
+
+      <View
+          android:layout_width="match_parent"
+          android:layout_height="1dp"
+          android:layout_marginTop="2dp"
+          android:layout_marginBottom="2dp"
+          android:background="@color/diy_gray2"/>
+
+      <TextView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:textColor="@color/black_de"
+          android:textSize="16sp"
+          android:visibility="gone"
+          android:text="读卡器地址："
+          android:id="@+id/tv_ble_addr"/>
+
+    </LinearLayout>
+
+  </androidx.cardview.widget.CardView>
   <androidx.cardview.widget.CardView
       android:orientation="vertical"
       android:layout_width="match_parent"
@@ -82,12 +175,18 @@
         android:padding="2dp"
         android:layout_margin="2dp"
         android:orientation="vertical">
-
+      <TextView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:textSize="18sp"
+          android:id="@+id/tv_current_latlng"
+          android:textStyle="bold"/>
 
          <TextView
              android:layout_width="match_parent"
              android:layout_height="wrap_content"
              android:textSize="22sp"
+             android:layout_marginTop="5dp"
              android:id="@+id/tv_latlng"
              android:textStyle="bold"/>
 

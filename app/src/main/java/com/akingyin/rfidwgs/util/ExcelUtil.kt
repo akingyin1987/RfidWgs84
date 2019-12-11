@@ -3,6 +3,7 @@ package com.akingyin.rfidwgs.util
 import com.akingyin.rfidwgs.config.AppFileConfig
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
+import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.ext.currentTimeMillis
 import com.blankj.utilcode.util.TimeUtils
 import jxl.CellView
@@ -71,10 +72,10 @@ object ExcelUtil {
            // wsheet.mergedCells
             mExcelWorkbook.write() // 写入文件
             mExcelWorkbook.close()
-//            latLngVos.forEach {
-//                it.exportTime = currentTimeMillis
-//            }
-//            BatichDbUtil.getLatlngRfidDao().saveInTx(latLngVos)
+            latLngVos.forEach {
+                it.exportTime = currentTimeMillis
+            }
+            BatichDbUtil.getLatlngRfidDao().saveInTx(latLngVos)
             callBack(true,null)
         }catch (e : Exception){
             e.printStackTrace()

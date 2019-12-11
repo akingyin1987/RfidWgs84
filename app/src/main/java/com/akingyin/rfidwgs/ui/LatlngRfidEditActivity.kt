@@ -18,7 +18,6 @@ import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.StackingBehavior
-import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
@@ -31,6 +30,10 @@ import com.bleqpp.BleQppNfcCameraServer
 import com.bleqpp.KsiSharedStorageHelper
 import com.bleqpp.QppBleDeviceListActivity
 import com.tbruyelle.rxpermissions2.RxPermissions
+import com.tencent.map.geolocation.TencentLocation
+import com.tencent.map.geolocation.TencentLocationListener
+import com.tencent.map.geolocation.TencentLocationManager
+import com.tencent.map.geolocation.TencentLocationRequest
 import com.zlcdgroup.nfcsdk.ConStatus
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
@@ -48,7 +51,7 @@ import java.util.concurrent.TimeUnit
  * @ Date 2019/12/6 16:01
  * @version V1.0
  */
-class LatlngRfidEditActivity : BaseActivity(), LocationListener {
+class LatlngRfidEditActivity : BaseActivity(), LocationListener, TencentLocationListener {
 
     var MAX_LATLNG = 30
     var MAX_REPEAT_LATLNG = 15
@@ -158,6 +161,24 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
 
     }
 
+
+    private   fun  onStartTencentLocation(){
+        val request = TencentLocationRequest.create().apply {
+            interval = 2000
+        }
+        val mLocationManager = TencentLocationManager.getInstance(this)
+        mLocationManager.removeUpdates(null)
+        mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_WGS84
+       var error =  mLocationManager.requestLocationUpdates(request,this)
+       if(error != 0){
+           showMsg("注册定位失败，代码：$error")
+       }
+    }
+
+    private   fun   onStopTencentLocation(){
+        TencentLocationManager.getInstance(this).removeUpdates(null)
+    }
+
     private   fun  initBleInfo(){
         if(BLE_NFC_CARD == 0){
             tv_ble_addr.visibility = View.GONE
@@ -208,12 +229,13 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
                 .request(Manifest.permission.ACCESS_FINE_LOCATION)
                 .subscribe({
                     if (it) {
-                        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
-                        if (BuildConfig.DEBUG) {
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
-                        } else {
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
-                        }
+//                        //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
+//                        if (BuildConfig.DEBUG) {
+//                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
+//                        } else {
+//                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 20, 0F, this)
+//                        }
+                        onStartTencentLocation()
                         btn_lat_lng.tag = "1"
                         btn_lat_lng.text = "定位中.."
                         mDisposable?.dispose()
@@ -244,13 +266,13 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
         tv_current_latlng.text = "当前定位：无"
         currentLatlng?.apply {
             val stringBuilder1 = StringBuilder("")
-            stringBuilder1.append("<br>").append("当前精度：").append(accuracy).append("米")
+            stringBuilder1.append("当前精度：").append(accuracy).append("米")
                     .append("<br> lat:").append(latitude).append("   ,").append(ConvertUtils.changeToDFM(latitude))
                     .append("<br> lng:").append(longitude).append("   ,").append(ConvertUtils.changeToDFM(longitude))
             if (accuracy <= MAX_ACCURACY) {
                 tv_current_latlng.text = Html.fromHtml(HtmlUtils.getGreenHtml(stringBuilder1.toString()))
             } else {
-                tv_current_latlng.text = Html.fromHtml(HtmlUtils.getColorHtml(stringBuilder.toString(), "#4d4d4d"))
+                tv_current_latlng.text = Html.fromHtml(HtmlUtils.getColorHtml(stringBuilder1.toString(), "#4d4d4d"))
             }
 
         }
@@ -287,7 +309,8 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
         }
         initLocationInfo()
         mDisposable?.dispose()
-        locationManager.removeUpdates(this)
+        onStopTencentLocation()
+       // locationManager.removeUpdates(this)
     }
 
     override fun handTag(rfid: String, block0: String?) {
@@ -413,14 +436,33 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
                 showSettingDialog()
             }
             R.id.action_export -> {
-                onExportData()
+                MaterialDialog.Builder(this).title("数据导出")
+                        .content("1、导出(默认)未导出过的数据" +
+                                "2、导出所有数据")
+                        .neutralText("取消")
+                        .negativeText("导出")
+                        .positiveText("导出所有")
+                        .autoDismiss(true)
+                        .onPositive { _, _ ->
+                            onExportData(type = 1)
+                        }
+                        .onNegative { _, _ ->
+                            onExportData()
+                        }
+                        .show()
             }
         }
         return super.onOptionsItemSelected(item)
     }
 
-    private fun onExportData() {
-        val data = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.ExportTime.le(0), LatLngRfidDao.Properties.BatchId.eq(batchId)).list()
+    private fun onExportData( type : Int = 0) {
+        var data = mutableListOf<LatLngRfid>()
+        if(type == 0){
+          data =  BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.ExportTime.le(0), LatLngRfidDao.Properties.BatchId.eq(batchId)).list()
+        }else {
+            data =  BatichDbUtil.getLatlngRfidDao().queryBuilder().where( LatLngRfidDao.Properties.BatchId.eq(batchId)).list()
+
+        }
         if (data.isEmpty()) {
             showMsg("当前批次没有可以导出的数据")
             return
@@ -513,6 +555,23 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener {
 
     override fun handleElectricity(elect: Int) {
         tv_ble_elect.text=MessageFormat.format("电量：{0}%",elect)
+    }
+
+    override fun onLocationChanged(location: TencentLocation?, error: Int, reason: String?) {
+        if(error == TencentLocation.ERROR_OK){
+            location?.let {
+                onLocationChanged(Location(LocationManager.GPS_PROVIDER).apply {
+                    latitude = it.latitude
+                    longitude = it.longitude
+                    accuracy = it.accuracy
+
+                })
+            }
+        }
+
+    }
+
+    override fun onStatusUpdate(name: String?, status: Int, desc: String?) {
     }
 
     override fun onDestroy() {

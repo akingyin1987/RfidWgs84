@@ -28,7 +28,7 @@
       android:layout_height="wrap_content"
       app:cardCornerRadius="5dp"
       android:foreground="?attr/selectableItemBackground"
-      android:layout_margin="5dp"
+      android:layout_margin="3dp"
       app:cardElevation="5dp">
     <LinearLayout
         android:layout_width="match_parent"
@@ -122,7 +122,7 @@
       android:layout_height="wrap_content"
       app:cardCornerRadius="5dp"
       android:foreground="?attr/selectableItemBackground"
-      android:layout_margin="5dp"
+      android:layout_margin="3dp"
       app:cardElevation="5dp">
 
     <LinearLayout
@@ -166,7 +166,7 @@
       android:layout_height="wrap_content"
       app:cardCornerRadius="5dp"
       android:foreground="?attr/selectableItemBackground"
-      android:layout_margin="5dp"
+      android:layout_margin="3dp"
       app:cardElevation="5dp">
 
     <LinearLayout

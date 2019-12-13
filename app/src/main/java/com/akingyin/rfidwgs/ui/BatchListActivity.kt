@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
+import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
@@ -31,6 +32,7 @@ class BatchListActivity : BaseActivity() {
     override fun getLayoutId()= R.layout.activity_batch_list
 
     override fun initView() {
+
         setToolBar(toolbar,"批次管理")
         batchListAdapter = BatchListAdapter()
         recycler.layoutManager = LinearLayoutManager(this)
@@ -95,6 +97,27 @@ class BatchListActivity : BaseActivity() {
     }
 
     override fun handTag(rfid: String, block0: String?) {
+        if(BuildConfig.DEBUG){
+
+//            val intent = Intent(NfcAdapter.ACTION_TECH_DISCOVERED).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+//            val cn = ComponentName("com.zlcdgroup.tms",
+//                    "com.zlcdgroup.tms.ui.TicketReportEditActivity")
+//            intent.component = cn
+//
+//            val  parcel =  Parcel.obtain()
+//            val tag = Tag.CREATOR.createFromParcel(Parcel.obtain().apply {
+//                writeInt(rfid.toByteArray(Charset.defaultCharset()).size)
+//                writeByteArray(rfid.toByteArray(Charset.defaultCharset()))
+//            })
+//            parcel.recycle()
+//            intent.putExtras(Bundle().apply {
+//                putParcelable(NfcAdapter.EXTRA_TAG,tag)
+//            })
+//            startActivity(intent)
+
+        }
+
+
         BatichDbUtil.findRfidEntityByRfid(rfid)?.let {
             MaterialDialog.Builder(this).title("操作")
                     .content("已查到当前标签：${rfid},请选择以下操作！")

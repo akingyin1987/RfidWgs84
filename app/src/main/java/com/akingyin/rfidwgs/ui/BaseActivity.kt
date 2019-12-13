@@ -47,7 +47,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         setContentView(getLayoutId())
         mAdapter = NfcAdapter.getDefaultAdapter(this)
 
-        if(packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)){
+        if(!packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)){
             isSupportBle = false
         }
         if(null == mAdapter){

@@ -726,6 +726,8 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
 
           play();
           rfidlistion.onNewRfid(datas, null);
+
+
         }
 
       }else if(QppUsbCameraApi.uuidQppElectricityNotice.equalsIgnoreCase(qppUUIDForNotifyChar)){
@@ -809,7 +811,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
       return 0;
     }
     int   ele = Integer.parseInt(data,16);
-    System.out.println("ele=="+ele);
+
     if(ele <204 && ele>=156){
       return 100-(204-ele)*2;
     }

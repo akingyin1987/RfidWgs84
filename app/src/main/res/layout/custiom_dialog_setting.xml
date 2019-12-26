@@ -17,7 +17,7 @@
 
     <androidx.appcompat.widget.AppCompatEditText
         android:layout_width="match_parent"
-        android:inputType="number"
+        android:inputType="numberDecimal"
         android:maxLines="2"
         android:id="@+id/edit_max_accuracy"
         android:layout_gravity="center"
@@ -25,6 +25,46 @@
         android:layout_height="wrap_content"/>
   </LinearLayout>
 
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:orientation="horizontal"
+      android:layout_height="wrap_content">
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:text="卫星数："
+        android:layout_gravity="center"
+        android:layout_height="wrap_content"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:layout_width="match_parent"
+        android:inputType="number"
+        android:maxLines="2"
+        android:id="@+id/edit_min_satellite"
+        android:layout_gravity="center"
+        android:padding="3dp"
+        android:layout_height="wrap_content"/>
+  </LinearLayout>
+
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:orientation="horizontal"
+      android:layout_height="wrap_content">
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="wrap_content"
+        android:text="卫星信噪比："
+        android:layout_gravity="center"
+        android:layout_height="wrap_content"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:layout_width="match_parent"
+        android:inputType="numberDecimal"
+        android:maxLines="2"
+        android:id="@+id/edit_min_snv"
+        android:layout_gravity="center"
+        android:padding="3dp"
+        android:layout_height="wrap_content"/>
+  </LinearLayout>
 
   <LinearLayout
       android:layout_width="match_parent"

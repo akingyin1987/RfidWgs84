@@ -5,20 +5,20 @@
 
       android:orderInCategory="1"
       android:icon="@drawable/ic_settings_white_36dp"
-      app:showAsAction="ifRoom"
+      app:showAsAction="never|withText"
       android:title="设置"/>
 
   <item android:id="@+id/action_export"
 
       android:orderInCategory="2"
       android:icon="@drawable/ic_import_export_white_36dp"
-      app:showAsAction="ifRoom"
+      app:showAsAction="never|withText"
       android:title="导出"/>
 
   <item android:id="@+id/action_upload"
 
-      android:orderInCategory="2"
+      android:orderInCategory="3"
       android:icon="@drawable/ic_cloud_upload_white_36dp"
-      app:showAsAction="ifRoom"
+      app:showAsAction="never|withText"
       android:title="上传"/>
 </menu>

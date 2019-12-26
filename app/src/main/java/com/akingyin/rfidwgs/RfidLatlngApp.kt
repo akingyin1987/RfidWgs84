@@ -25,6 +25,7 @@ class RfidLatlngApp  : Application() {
         if(BuildConfig.DEBUG){
             showDebugDBAddressLogToast(this)
         }
+
         AppFileConfig.APP_FILE_ROOT = AppFileConfig.getAppFileRoot(this).absolutePath
     }
 

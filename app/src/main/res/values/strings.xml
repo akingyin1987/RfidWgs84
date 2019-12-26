@@ -10,4 +10,20 @@
   <string name="menu_disconnect">Disconnect</string>
   <string name="menu_scan">Scan</string>
   <string name="menu_stop">Stop</string>
+
+
+  <!-- 解类型-->
+  <string name="gnss_position_type_unknown">未知</string>
+  <string name="gnss_position_type_invalid">无效</string>
+  <string name="gnss_position_type_single">单点定位</string>
+  <string name="gnss_position_type_rtd">伪距差分</string>
+  <string name="gnss_position_type_rtkfixed">固定解</string>
+  <string name="gnss_position_type_rtkfloat">浮动解</string>
+  <string name="gnss_position_type_drm">航位推测模式</string>
+  <string name="gnss_position_type_fixedpos">固定位置</string>
+  <string name="gnss_position_type_simulator">模拟模式</string>
+  <string name="gnss_position_type_sbas">广域差分</string>
+  <string name="gnss_position_type_pppfixed">PPP固定解</string>
+  <string name="gnss_position_type_pppfloat">PPP浮动解</string>
+  <string name="gnss_position_type_indoor">室内位置</string>
 </resources>

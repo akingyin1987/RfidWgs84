@@ -55,12 +55,12 @@ import java.util.concurrent.TimeUnit
 @SuppressLint("MissingPermission")
 class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Listener {
 
-    var MAX_LATLNG = 30
+    var MAX_LATLNG = 50
     var MAX_REPEAT_LATLNG = 15
-    var MAX_ACCURACY = 5F
-    var MIN_SATELLITE = 24
+    var MAX_ACCURACY = 10F
+    var MIN_SATELLITE = 4
     //卫星的信噪比
-    var MIN_SNR = 0.1F
+    var MIN_SNR = 21F
 
 
     var batchId: Long = 0L
@@ -94,11 +94,11 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         tv_toolbar_title.text="定位与标签"
         setToolBar(toolbar, "")
 
-        MAX_LATLNG = spGetInt("max_latlng", 30)
-        MAX_REPEAT_LATLNG = spGetInt("max_repeat_latlng", 15)
-        MAX_ACCURACY = spGetFloat("max_accuracy", 5F)
-        MIN_SATELLITE = spGetInt("min_satellite",24)
-        MIN_SNR= spGetFloat("min_snr",0.1F)
+        MAX_LATLNG = spGetInt("max_latlng", MAX_LATLNG)
+        MAX_REPEAT_LATLNG = spGetInt("max_repeat_latlng", MAX_REPEAT_LATLNG)
+        MAX_ACCURACY = spGetFloat("max_accuracy", MAX_ACCURACY)
+        MIN_SATELLITE = spGetInt("min_satellite",MIN_SATELLITE)
+        MIN_SNR= spGetFloat("min_snr",MIN_SNR)
         batchId = intent.getLongExtra("batchId", 0)
 
         batch = BatichDbUtil.getBatichDao().load(batchId)
@@ -420,7 +420,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     override fun onLocationChanged(location: Location?) {
 
         location?.let {
-            if (it.accuracy <= MAX_ACCURACY && accordSatellite>= MIN_SATELLITE) {
+            if (it.accuracy <= MAX_ACCURACY && it.accuracy>0 && accordSatellite>= MIN_SATELLITE) {
                 cacheLatlngs.add(LatLngVo(it.latitude, it.longitude))
                 var lat = 0.0
                 var lng = 0.0
@@ -503,7 +503,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             R.id.action_export -> {
                 MaterialDialog.Builder(this).title("数据导出")
                         .content("1、导出(默认)未导出过的数据" +
-                                "2、导出所有数据")
+                                "\r\n 2、导出所有数据")
                         .neutralText("取消")
                         .negativeText("导出")
                         .positiveText("导出所有")

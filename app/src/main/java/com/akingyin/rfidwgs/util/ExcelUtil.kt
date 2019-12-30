@@ -39,7 +39,7 @@ object ExcelUtil {
             val cv = CellView()
             cv.isAutosize = true
             val titleFormat = WritableCellFormat(wfont)
-            val title = arrayOf("标签","经度","维度","时间")
+            val title = arrayOf("标签ID","UUID","编号","类型","口径","日期","lat","lng","bdlat","bdlng","block0")
 
             val  label = Label(0,0,"批次：${batch.name} 创建时间：${TimeUtils.millis2String(batch.createTime)}  导出总数：${latLngVos.size}  导出时间：${TimeUtils.millis2String(currentTimeMillis)}",titleFormat)
             wsheet.addCell(label)
@@ -59,13 +59,27 @@ object ExcelUtil {
 
             latLngVos.forEachIndexed { index, latLngVo ->
                 val content1 = Label(0, index+2, latLngVo.rfid)
-                val content2 = Label(1, index+2,latLngVo.wgsLat.toString())
-                val content3 = Label(2, index+2,latLngVo.wgsLng.toString())
-                val content4 = Label(3, index+2,TimeUtils.millis2String(latLngVo.operationTime))
+
+                /** UUID */
+                val content2 = Label(1, index+2, "")
+                val content3 = Label(2, index+2, "")
+                val content4 = Label(3, index+2, "")
+                val content5 = Label(4, index+2, "")
+
+
+                val content6 = Label(5, index+2,TimeUtils.millis2String(latLngVo.operationTime))
+                val content7 = Label(6, index+2,latLngVo.wgsLat.toString())
+                val content8 = Label(7, index+2,latLngVo.wgsLng.toString())
+
                 wsheet.addCell(content1)
                 wsheet.addCell(content2)
                 wsheet.addCell(content3)
                 wsheet.addCell(content4)
+
+                wsheet.addCell(content5)
+                wsheet.addCell(content6)
+                wsheet.addCell(content7)
+                wsheet.addCell(content8)
 
             }
             wsheet.mergeCells(0,0,4,0)

@@ -82,7 +82,7 @@ object ExcelUtil {
                 wsheet.addCell(content8)
 
             }
-            wsheet.mergeCells(0,0,4,0)
+            wsheet.mergeCells(0,0,10,0)
            // wsheet.mergedCells
             mExcelWorkbook.write() // 写入文件
             mExcelWorkbook.close()

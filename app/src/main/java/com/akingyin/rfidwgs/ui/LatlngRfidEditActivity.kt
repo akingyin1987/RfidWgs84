@@ -41,6 +41,7 @@ import kotlinx.android.synthetic.main.activity_rfid_latlng_edit.*
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.text.MessageFormat
 import java.util.concurrent.TimeUnit
 
@@ -453,6 +454,10 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                 }
                 averageLatlng.lat = lat / cacheLatlngs.size
                 averageLatlng.lng = lng / cacheLatlngs.size
+
+                averageLatlng.lat = BigDecimal.valueOf(averageLatlng.lat).setScale(6,BigDecimal.ROUND_HALF_UP).toDouble()
+                averageLatlng.lng = BigDecimal.valueOf(averageLatlng.lng).setScale(6,BigDecimal.ROUND_HALF_UP).toDouble()
+
                 currentLatlng?.let { latlng ->
                     if (it.latitude == latlng.latitude && it.longitude == latlng.longitude) {
                         repeatCount++

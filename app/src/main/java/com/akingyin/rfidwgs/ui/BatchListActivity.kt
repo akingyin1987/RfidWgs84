@@ -4,7 +4,6 @@ import android.content.Intent
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
-import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
@@ -12,7 +11,7 @@ import com.akingyin.rfidwgs.ui.adapter.BatchListAdapter
 import com.akingyin.rfidwgs.util.DialogUtil
 import com.zlcdgroup.nfcsdk.ConStatus
 import kotlinx.android.synthetic.main.activity_batch_list.*
-import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.util.*
@@ -74,7 +73,7 @@ class BatchListActivity : BaseActivity() {
         }
     }
 
-    fun   onShowDelectBatch(batch: Batch,postion:Int){
+   private  fun   onShowDelectBatch(batch: Batch,postion:Int){
         DialogUtil.showConfigDialog(this,"确定要删除当前批次！"){
             if(it){
                 BatichDbUtil.onDelectBatch(batch)
@@ -86,44 +85,35 @@ class BatchListActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        GlobalScope.launch(Main) {
+        flushData()
+
+    }
+
+    private fun   flushData(){
+        GlobalScope.launch(Dispatchers.Main) {
             batchListAdapter.setNewData(getBatchList())
         }
-
     }
 
     suspend fun   getBatchList():List<Batch>{
         return BatichDbUtil.findAllBatich()
     }
 
+
+    private   var   dialog:MaterialDialog ?=null
     override fun handTag(rfid: String, block0: String?) {
-        if(BuildConfig.DEBUG){
-
-//            val intent = Intent(NfcAdapter.ACTION_TECH_DISCOVERED).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-//            val cn = ComponentName("com.zlcdgroup.tms",
-//                    "com.zlcdgroup.tms.ui.TicketReportEditActivity")
-//            intent.component = cn
-//
-//            val  parcel =  Parcel.obtain()
-//            val tag = Tag.CREATOR.createFromParcel(Parcel.obtain().apply {
-//                writeInt(rfid.toByteArray(Charset.defaultCharset()).size)
-//                writeByteArray(rfid.toByteArray(Charset.defaultCharset()))
-//            })
-//            parcel.recycle()
-//            intent.putExtras(Bundle().apply {
-//                putParcelable(NfcAdapter.EXTRA_TAG,tag)
-//            })
-//            startActivity(intent)
-
-        }
-
-
+        dialog?.dismiss()
         BatichDbUtil.findRfidEntityByRfid(rfid)?.let {
-            MaterialDialog.Builder(this).title("操作")
+           dialog = MaterialDialog.Builder(this).autoDismiss(true).title("操作")
                     .content("已查到当前标签：${rfid},请选择以下操作！")
                     .neutralText("取消")
-                    .negativeText("删除")
-                    .positiveText("修改")
+                   // .negativeText("删除")
+                    .positiveText("删除")
+                    .onPositive { _, _ ->
+                        BatichDbUtil.getLatlngRfidDao().delete(it)
+                        BatichDbUtil.getLatlngRfidDao().detach(it)
+                        flushData()
+                    }
                     .show()
         }?:showMsg("当前标签未在终端数据中查询到！")
 

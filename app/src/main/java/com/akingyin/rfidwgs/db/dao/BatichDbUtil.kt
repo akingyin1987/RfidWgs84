@@ -24,7 +24,8 @@ object BatichDbUtil {
     fun   findAllBatich():List<Batch>{
         return  DbCore.getDaoSession().batchDao.queryBuilder().orderDesc(BatchDao.Properties.CreateTime).list()
                 .map {
-                    it.uploadedTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.OperationTime.gt(getTodayStartTime())).buildCount().count().toInt()
+                    println("-------------------${it.name}")
+                    it.todayTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.OperationTime.gt(getTodayStartTime())).buildCount().count().toInt()
                     it.exportedTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.ExportTime.gt(0)).buildCount().count().toInt()
                     it.uploadedTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.UploadTime.gt(0)).buildCount().count().toInt()
                     it

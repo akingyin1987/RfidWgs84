@@ -197,20 +197,20 @@
 
       <TextView
           android:layout_width="match_parent"
-          android:textSize="18sp"
+          android:textSize="16sp"
           android:id="@+id/tv_current_satellite"
           android:layout_height="wrap_content"/>
       <TextView
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
-          android:textSize="18sp"
+          android:textSize="16sp"
           android:id="@+id/tv_current_latlng"
           android:textStyle="bold"/>
 
          <TextView
              android:layout_width="match_parent"
              android:layout_height="wrap_content"
-             android:textSize="22sp"
+             android:textSize="20sp"
              android:layout_marginTop="5dp"
              android:id="@+id/tv_latlng"
              android:textStyle="bold"/>
@@ -240,6 +240,7 @@
         android:layout_width="wrap_content"
         android:id="@+id/btn_delect_latlng"
         android:text="清除定位"
+        android:visibility="gone"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
         android:gravity="center"
@@ -277,12 +278,14 @@
           android:layout_gravity="center"
           android:layout_height="wrap_content"
           android:textSize="22sp"
+          android:text="标签："
           android:id="@+id/tv_rfid"
           android:textStyle="bold"/>
 
       <androidx.appcompat.widget.AppCompatButton
           android:layout_width="wrap_content"
           android:text="清除标签"
+          android:visibility="gone"
           android:layout_gravity="center"
           android:id="@+id/btn_delect_rfid"
           android:layout_height="wrap_content"/>

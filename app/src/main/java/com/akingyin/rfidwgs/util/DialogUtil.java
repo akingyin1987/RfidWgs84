@@ -64,10 +64,11 @@ public class DialogUtil {
   /**
    * 确认圣诞框
    */
-  public static void showConfigDialog(Context context, String message,
+  public static MaterialDialog showConfigDialog(Context context, String message,
       final DialogCallBack<Boolean> callBack) {
-    new MaterialDialog.Builder(context).title("提示")
+   return new MaterialDialog.Builder(context).title("提示")
         .content(message)
+        .autoDismiss(true)
         .positiveText("确定")
         .negativeText("取消")
 

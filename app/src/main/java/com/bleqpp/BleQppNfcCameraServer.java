@@ -83,7 +83,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
     init();
   }
 
-  private static BleQppNfcCameraServer instance;
+  private  static BleQppNfcCameraServer instance;
 
   public Handler mHandler;
 
@@ -97,7 +97,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
 
     if (null == instance) {
       instance = new BleQppNfcCameraServer(context);
-
+      System.out.println("第一次创建---->>>");
     }
     if(null != instance.mContextWeakReference.get()){
       if(instance.mContextWeakReference.get() != context){
@@ -298,7 +298,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
     if(null != mContextWeakReference.get()){
       mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(mContextWeakReference.get()));
     }
-    showToast("当前地址："+mac);
+    showToast("当前地址："+mac+":"+connectionFailed+":"+address);
     reConnectCount = 0;
     if (!TextUtils.isEmpty(mac) && (connectionFailed || !address.equalsIgnoreCase(mac))) {
       blemac.clear();
@@ -343,6 +343,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
 
 
   public   void   showToast(String  msg){
+    System.out.println("msg="+msg);
     try {
       if(BuildConfig.DEBUG){
         //if(null != mContextWeakReference.get()){
@@ -401,7 +402,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
   public  boolean   isCallBack= false;
 
   public  void    connect(String  address){
-    System.out.println("开始连接--------->>>"+connectStatus.get());
+    System.out.println("开始连接--------->>>"+connectStatus.get()+":"+address);
     if(null == instance){
       connectStatus.set(false);
       return ;
@@ -706,6 +707,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
   }
 
   private   byte[]   defaultEmpty={0,0,0,0,0,0,0,0,0,0};
+  private    int    readRfidCount=0;
   @Override
   public void onQppReceiveData(BluetoothGatt mBluetoothGatt, String qppUUIDForNotifyChar, byte[] result) {
 
@@ -723,7 +725,8 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
         byte[]   datas = Arrays.copyOf(result,dataLength-1);
         byte    valbyte = getXor(datas);
         if(valbyte == result[dataLength-1]){
-
+          readRfidCount++;
+          System.out.println("读卡="+readRfidCount+":"+System.currentTimeMillis());
           play();
           rfidlistion.onNewRfid(datas, null);
 
@@ -732,7 +735,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
 
       }else if(QppUsbCameraApi.uuidQppElectricityNotice.equalsIgnoreCase(qppUUIDForNotifyChar)){
         //电量
-
+        System.out.println("电量-->>");
 
         Integer  elect = getonElectricity(result);
         if(null != elect){

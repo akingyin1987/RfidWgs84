@@ -1,19 +1,24 @@
 package com.akingyin.rfidwgs.ui
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
+import com.akingyin.rfidwgs.ext.currentTimeMillis
 import com.akingyin.rfidwgs.ui.adapter.BatchListAdapter
 import com.akingyin.rfidwgs.util.DialogUtil
+import com.bleqpp.BleQppNfcCameraServer
 import com.zlcdgroup.nfcsdk.ConStatus
 import kotlinx.android.synthetic.main.activity_batch_list.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 
@@ -83,20 +88,30 @@ class BatchListActivity : BaseActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        println("列表取消注册->")
+    }
+
     override fun onResume() {
         super.onResume()
+        println("列表开始注册--->")
         flushData()
 
     }
 
     private fun   flushData(){
         GlobalScope.launch(Dispatchers.Main) {
+
             batchListAdapter.setNewData(getBatchList())
         }
     }
 
-    suspend fun   getBatchList():List<Batch>{
-        return BatichDbUtil.findAllBatich()
+    private  suspend fun   getBatchList():List<Batch>{
+       return withContext(IO){
+            BatichDbUtil.findAllBatich()
+        }
+
     }
 
 
@@ -123,5 +138,27 @@ class BatchListActivity : BaseActivity() {
     }
 
     override fun handleElectricity(elect: Int) {
+    }
+
+
+    private  var   mExitTime = 0L
+    override fun onBackPressed() {
+        if(currentTimeMillis - mExitTime > 2000){
+            Toast.makeText(this,"再按一次退出程序",Toast.LENGTH_SHORT).show()
+            mExitTime = currentTimeMillis
+            return
+        }
+        println("ble=$isSupportBle:$BLE_NFC_CARD")
+        if(isSupportBle && BLE_NFC_CARD == 1){
+            BleQppNfcCameraServer.getInstance(this).connectDestroy()
+        }
+        AppManager.getInstance()?.AppExit()
+        finish()
+        super.onBackPressed()
+    }
+
+    override fun onDestroy() {
+
+        super.onDestroy()
     }
 }

@@ -43,6 +43,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
     var  BLE_NFC_CARD  = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppManager.getInstance()!!.addActivity(this)
         mainHandler = MyHandler(this)
         setContentView(getLayoutId())
         mAdapter = NfcAdapter.getDefaultAdapter(this)
@@ -71,7 +72,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
             }
         }
         initView()
-        BLE_NFC_CARD = spGetInt("ble_cardread")
+
     }
 
 
@@ -112,6 +113,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
             mAdapter!!.disableForegroundDispatch(this)
         }
         if(isSupportBle && BLE_NFC_CARD == 1){
+            println("取消注册------>>>${System.currentTimeMillis()}")
             BleQppNfcCameraServer.getInstance(this).unregistered(this)
         }
     }
@@ -121,7 +123,10 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         if(null != mAdapter){
             mAdapter!!.enableForegroundDispatch(this,mPendingIntent,mFilters,mTechLists)
         }
+        BLE_NFC_CARD = spGetInt("ble_cardread")
+
         if(isSupportBle && BLE_NFC_CARD == 1){
+            println("注册------>>>${System.currentTimeMillis()}")
             BleQppNfcCameraServer.getInstance(this).onregistered(this)
         }
     }
@@ -213,6 +218,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
     lateinit var  mainHandler  :MyHandler
     override fun onDestroy() {
         mainHandler.removeCallbacksAndMessages(null)
+        AppManager.getInstance()?.finishActivity(this)
         super.onDestroy()
     }
 }

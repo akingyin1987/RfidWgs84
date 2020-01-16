@@ -164,7 +164,9 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         tv_ble_addr.text=MessageFormat.format("读卡器地址：{0}",mac)
         BLE_NFC_CARD = spGetInt("ble_cardread")
         println("ble=$BLE_NFC_CARD")
-        sc_setting_ble.setOnCheckedChangeListener { _, isChecked ->
+        initBleInfo()
+        sc_setting_ble.setOnClickListener {
+          val  isChecked = sc_setting_ble.isChecked
             if(isChecked){
                 spSetInt("ble_cardread",1)
                 BLE_NFC_CARD =1
@@ -179,7 +181,8 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             }
             initBleInfo()
         }
-        initBleInfo()
+
+
         tv_ble_addr.setOnClickListener {
             startActivity(Intent(this,QppBleDeviceListActivity::class.java))
         }
@@ -247,6 +250,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             tv_ble_status.visibility = View.VISIBLE
             tv_ble_elect.visibility = View.VISIBLE
             sc_setting_ble.isChecked = true
+            handleConnectStatus( BleQppNfcCameraServer.getInstance(this).current)
         }
     }
 
@@ -383,15 +387,19 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     }
 
     private   var  dialog:MaterialDialog?=null
+    private   var    readRfidCount = 0
     override fun handTag(rfid: String, block0: String?) {
-        dialog?.dismiss()
+        if(null != dialog && dialog!!.isShowing){
+            return
+        }
+
         val tag = btn_lat_lng.tag.toString()
         if (tag == "2") {
             if (BatichDbUtil.onValRfid(rfid)) {
                 showMsg("当前标签信息已被使用！")
                 return
             }
-            tv_rfid.text = MessageFormat.format("标定ID：{0}", rfid)
+            tv_rfid.text = MessageFormat.format("标签ID：{0}", rfid)
             if (null == latLngRfid || null == latLngRfid?.id) {
                 latLngRfid = LatLngRfid().apply {
                     wgsLat = averageLatlng.lat
@@ -403,7 +411,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                 BatichDbUtil.getLatlngRfidDao().save(latLngRfid)
                 initBatchInfo(batch!!)
                 showMsg("保存成功！")
-               dialog =  DialogUtil.showConfigDialog(this,"定位点数据保存成功，点击确定新增下一个点?"){
+                dialog =  DialogUtil.showConfigDialog(this,"定位点数据保存成功，点击确定新增下一个点?"){
                     if(it){
                         latLngRfid = LatLngRfid().apply {
                             batchId = batch!!.id
@@ -455,7 +463,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     }
 
     override fun onLocationChanged(location: Location?) {
-        print("onchange")
+
         location?.let {
 
             if (it.accuracy <=MAX_ACCURACY && it.accuracy>0F && accordSatellite>= MIN_SATELLITE) {
@@ -469,18 +477,16 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                         latlngVo.lng *latlngVo.lat
                     }
                     val  removeLen = (MAX_LATLNG*0.05).toInt()
-                    showMsg("len=$removeLen")
+
                     if(removeLen>0){
                         //去除前面第X个
-                        println("size=${cacheLatlngs.size}  $removeLen")
                        cacheLatlngs.drop(removeLen)
-                        showMsg("size=${cacheLatlngs.size}")
                         var  index = 0
                        cacheLatlngs.dropLastWhile {
                            index++
                            index<= removeLen
                        }
-                        println("size2=${cacheLatlngs.size}  $removeLen")
+
                     }
                     onStopLocation()
                     cacheLatlngs.forEach { latlng ->
@@ -746,6 +752,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     override fun onDestroy() {
          onStopLocation()
          locationManager.removeGpsStatusListener(this)
+
         super.onDestroy()
     }
 }

@@ -25,7 +25,7 @@ import java.util.*
  */
 object ExcelUtil {
 
-   suspend fun   onExportExcel(latLngVos: List<LatLngRfid>,batch: Batch,callBack:(result:Boolean,error:String?) ->Unit  ){
+   fun   onExportExcel(latLngVos: List<LatLngRfid>,batch: Batch,callBack:(result:Boolean,error:String?) ->Unit  ){
         try {
             val  exportFile = File(AppFileConfig.APP_FILE_ROOT+File.separator+TimeUtils.date2String(Date(),"yyyyMMddHHmmss")+".xls")
             exportFile.parentFile?.mkdirs()

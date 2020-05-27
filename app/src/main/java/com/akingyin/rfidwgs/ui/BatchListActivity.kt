@@ -83,7 +83,7 @@ class BatchListActivity : BaseActivity() {
             if(it){
                 BatichDbUtil.onDelectBatch(batch)
                 showMsg("删除成功")
-                batchListAdapter.remove(postion)
+                batchListAdapter.removeAt(postion)
             }
         }
     }
@@ -103,7 +103,7 @@ class BatchListActivity : BaseActivity() {
     private fun   flushData(){
         GlobalScope.launch(Dispatchers.Main) {
 
-            batchListAdapter.setNewData(getBatchList())
+            batchListAdapter.setNewInstance(getBatchList().toMutableList())
         }
     }
 

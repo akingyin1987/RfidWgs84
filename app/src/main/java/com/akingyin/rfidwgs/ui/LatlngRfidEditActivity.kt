@@ -37,13 +37,19 @@ import com.bleqpp.BleQppNfcCameraServer
 import com.bleqpp.KsiSharedStorageHelper
 import com.bleqpp.QppBleDeviceListActivity
 import com.tbruyelle.rxpermissions2.RxPermissions
+import com.tencent.map.geolocation.TencentLocation
+import com.tencent.map.geolocation.TencentLocationListener
+import com.tencent.map.geolocation.TencentLocationManager
+import com.tencent.map.geolocation.TencentLocationRequest
 import com.zlcdgroup.nfcsdk.ConStatus
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.activity_rfid_latlng_edit.*
+import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.text.MessageFormat
 import java.util.concurrent.TimeUnit
@@ -219,24 +225,48 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     }
 
+    private   var  tencentLocationListener :TencentLocationListener?= null
 
     private   fun  onStartTencentLocation(){
+         if(null == tencentLocationListener){
+             tencentLocationListener = object :TencentLocationListener{
+                 override fun onStatusUpdate(name: String?, status: Int, desc: String?) {
 
-//        val request = TencentLocationRequest.create().apply {
-//            interval = 2000
-//        }
-//        val mLocationManager = TencentLocationManager.getInstance(this)
-//        mLocationManager.removeUpdates(null)
-//        mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_WGS84
-//       var error =  mLocationManager.requestLocationUpdates(request,this)
-//       if(error != 0){
-//           showMsg("注册定位失败，代码：$error")
-//       }
+                 }
+
+                 override fun onLocationChanged(location: TencentLocation, error: Int, reason: String) {
+                     println("error=$error  :$reason   ${location.coordinateType}")
+                   if(error == TencentLocation.ERROR_OK){
+
+                       onLocationChanged(Location(LocationManager.GPS_PROVIDER).apply {
+                           latitude = location.latitude
+                           longitude = location.longitude
+                           accuracy = location.accuracy
+                       })
+                   }
+                 }
+             }
+         }
+        val request = TencentLocationRequest.create().apply {
+            interval = 2000
+            isAllowGPS = true
+        }
+        val mLocationManager = TencentLocationManager.getInstance(this)
+        if(mLocationManager.coordinateType == TencentLocationManager.COORDINATE_TYPE_WGS84){
+            mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_GCJ02
+        }else{
+            mLocationManager.coordinateType = TencentLocationManager.COORDINATE_TYPE_WGS84
+        }
+
+       var error =  mLocationManager.requestLocationUpdates(request,tencentLocationListener)
+       if(error != 0){
+           showMsg("注册定位失败，代码：$error")
+       }
     }
 
     private   fun   onStopTencentLocation(){
 
-//        TencentLocationManager.getInstance(this).removeUpdates(null)
+      TencentLocationManager.getInstance(this).removeUpdates(tencentLocationListener)
     }
 
     private   fun  initBleInfo(){
@@ -300,7 +330,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
                         }
 
-                        onStartTencentLocation()
+                      //  onStartTencentLocation()
                         btn_lat_lng.tag = "1"
                         btn_lat_lng.text = "定位中.."
                         mDisposable?.dispose()
@@ -382,7 +412,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         }
         initLocationInfo()
         mDisposable?.dispose()
-        onStopTencentLocation()
+       // onStopTencentLocation()
         locationManager.removeUpdates(this)
     }
 
@@ -611,13 +641,16 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                     .progress(false, 0)
                     .stackingBehavior(StackingBehavior.ADAPTIVE)
                     .show()
-            ExcelUtil.onExportExcel(data, batch!!) { result, error ->
-                if (result) {
-                    showMsg("导出成功")
-                } else {
-                    showMsg("导出失败,$error")
+            withContext(IO){
+                ExcelUtil.onExportExcel(data, batch!!) { result, error ->
+                    if (result) {
+                        showMsg("导出成功")
+                    } else {
+                        showMsg("导出失败,$error")
+                    }
                 }
             }
+
             dialog.hide()
 
         }

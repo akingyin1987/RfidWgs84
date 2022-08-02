@@ -90,7 +90,7 @@ object ExcelUtil {
                 it.exportTime = currentTimeMillis
             }
             BatichDbUtil.getLatlngRfidDao().saveInTx(latLngVos)
-            callBack(true,null)
+            callBack(true,exportFile.absolutePath)
         }catch (e : Exception){
             e.printStackTrace()
             callBack.invoke(false,e.message)

@@ -31,7 +31,7 @@ import java.util.*
  */
 class BatchListActivity : BaseActivity() {
 
-    lateinit var  batchListAdapter: BatchListAdapter
+    private lateinit var  batchListAdapter: BatchListAdapter
 
     override fun getLayoutId()= R.layout.activity_batch_list
 
@@ -44,7 +44,7 @@ class BatchListActivity : BaseActivity() {
         recycler.adapter = batchListAdapter
 
         batchListAdapter.setOnItemClickListener { _, _, position ->
-            batchListAdapter.getItem(position)?.apply {
+            batchListAdapter.getItem(position).apply {
 
                 startActivity(Intent(this@BatchListActivity,LatlngRfidEditActivity::class.java).apply {
 
@@ -54,7 +54,7 @@ class BatchListActivity : BaseActivity() {
         }
 
         batchListAdapter.setOnItemLongClickListener { _, _, position ->
-            onShowDelectBatch(batchListAdapter.getItem(position)!!,position)
+            onShowDeleteBatch(batchListAdapter.getItem(position),position)
             return@setOnItemLongClickListener true
         }
         fab_loc.setOnClickListener {
@@ -62,7 +62,7 @@ class BatchListActivity : BaseActivity() {
         }
     }
 
-    fun   onShowAddBatch(){
+    private fun   onShowAddBatch(){
         DialogUtil.showEditDialog(this,"添加批次",""){
             if(it.isNullOrEmpty()){
                 showMsg("输入内容不可以为空！")
@@ -78,10 +78,10 @@ class BatchListActivity : BaseActivity() {
         }
     }
 
-   private  fun   onShowDelectBatch(batch: Batch,postion:Int){
+   private  fun   onShowDeleteBatch(batch: Batch,postion:Int){
         DialogUtil.showConfigDialog(this,"确定要删除当前批次！"){
             if(it){
-                BatichDbUtil.onDelectBatch(batch)
+                BatichDbUtil.onDeleteBatch(batch)
                 showMsg("删除成功")
                 batchListAdapter.removeAt(postion)
             }

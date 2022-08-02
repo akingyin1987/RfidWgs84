@@ -127,6 +127,6 @@ dependencies {
     implementation files('libs/rfidapi.jar')
 
 
-   implementation'com.tencent.map.geolocation:TencentLocationSdk-openplatform:7.2.6'
+  // implementation'com.tencent.map.geolocation:TencentLocationSdk-openplatform:7.2.6'
 
 }

@@ -2,13 +2,13 @@ android {
 
   signingConfigs {
     debug {
-      storeFile file('E:/StudioApp/mrmsei/debug.keystore')
+      storeFile file('../debug.keystore')
       storePassword 'android'
       keyAlias 'androiddebugkey'
       keyPassword 'android'
     }
     release {
-      storeFile file('E:/StudioApp/mrmsei/wangye.jks')
+      storeFile file('../wangye.jks')
       storePassword 'kingwild'
       keyAlias 'kingwild'
       keyPassword 'kingwild'

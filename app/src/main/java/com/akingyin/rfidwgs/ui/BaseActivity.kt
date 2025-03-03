@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.*
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,6 +16,7 @@ import android.widget.Toast
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
 import com.akingyin.rfidwgs.ext.spGetInt
 import com.akingyin.rfidwgs.util.ConvertUtils
 import com.bleqpp.BleQppNfcCameraServer
@@ -41,11 +43,24 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
     var openNfc = 0
     var isSupportBle = true
     var  BLE_NFC_CARD  = 0
+
+    abstract val useViewBind: Boolean
+
+
+    open fun initViewBind(){
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppManager.getInstance()!!.addActivity(this)
         mainHandler = MyHandler(this)
-        setContentView(getLayoutId())
+        if(useViewBind.not()){
+            setContentView(getLayoutId())
+        }else{
+            initViewBind()
+        }
+
         mAdapter = NfcAdapter.getDefaultAdapter(this)
 
         if(!packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)){
@@ -114,7 +129,14 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         }
         if(isSupportBle && BLE_NFC_CARD == 1){
             println("取消注册------>>>${System.currentTimeMillis()}")
-            BleQppNfcCameraServer.getInstance(this).unregistered(this)
+            if(Build.VERSION.SDK_INT >=  Build.VERSION_CODES.S){
+                if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED){
+                    BleQppNfcCameraServer.getInstance(this).onregistered(this)
+                }
+            }else{
+                BleQppNfcCameraServer.getInstance(this).unregistered(this)
+            }
+
         }
     }
 
@@ -127,7 +149,18 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
 
         if(isSupportBle && BLE_NFC_CARD == 1){
             println("注册------>>>${System.currentTimeMillis()}")
-            BleQppNfcCameraServer.getInstance(this).onregistered(this)
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED){
+                    requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_SCAN,android.Manifest.permission.BLUETOOTH_CONNECT),1)
+                }else{
+                    BleQppNfcCameraServer.getInstance(this).onregistered(this)
+                }
+            }else{
+                BleQppNfcCameraServer.getInstance(this).onregistered(this)
+            }
+
+
+
         }
     }
 

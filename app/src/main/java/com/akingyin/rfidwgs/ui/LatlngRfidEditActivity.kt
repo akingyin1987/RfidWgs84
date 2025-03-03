@@ -5,11 +5,12 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.GnssStatus
 import android.location.GpsStatus
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Bundle
+import android.os.Build
 import android.provider.Settings
 import android.text.Html
 import android.view.Menu
@@ -21,14 +22,18 @@ import androidx.core.app.ActivityCompat
 import androidx.core.text.HtmlCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.StackingBehavior
-import com.akingyin.rfidwgs.BuildConfig
 import com.akingyin.rfidwgs.R
+import com.akingyin.rfidwgs.databinding.ActivityRfidLatlngEditBinding
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.LatLngRfid
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.db.dao.LatLngRfidDao
 import com.akingyin.rfidwgs.db.vo.LatLngVo
-import com.akingyin.rfidwgs.ext.*
+import com.akingyin.rfidwgs.ext.currentTimeMillis
+import com.akingyin.rfidwgs.ext.spGetFloat
+import com.akingyin.rfidwgs.ext.spGetInt
+import com.akingyin.rfidwgs.ext.spSetFloat
+import com.akingyin.rfidwgs.ext.spSetInt
 import com.akingyin.rfidwgs.util.DialogUtil
 import com.akingyin.rfidwgs.util.ExcelUtil
 import com.akingyin.rfidwgs.util.HtmlUtils
@@ -37,11 +42,9 @@ import com.bleqpp.BleQppNfcCameraServer
 import com.bleqpp.KsiSharedStorageHelper
 import com.bleqpp.QppBleDeviceListActivity
 import com.tbruyelle.rxpermissions2.RxPermissions
-
 import com.zlcdgroup.nfcsdk.ConStatus
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
-import kotlinx.android.synthetic.main.activity_rfid_latlng_edit.*
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.GlobalScope
@@ -84,7 +87,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     var latLngRfid: LatLngRfid? = null
 
-    lateinit var locationManager: LocationManager
+    private lateinit var locationManager: LocationManager
 
     override fun getLayoutId() = R.layout.activity_rfid_latlng_edit
 
@@ -96,11 +99,26 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     var repeatCount: Int = 0
 
     var currentLatlng: Location? = null
+    
+    private lateinit var viewBinding: ActivityRfidLatlngEditBinding
 
+
+    private var gnssStatusCallback: GnssStatus.Callback? = null
+
+
+    override val useViewBind: Boolean
+        get() = true
+
+    override fun initViewBind() {
+        super.initViewBind()
+         viewBinding = ActivityRfidLatlngEditBinding.inflate(layoutInflater)
+         setContentView(viewBinding.root)
+    }
+    
     override fun initView() {
 
-        tv_toolbar_title.text="定位与标签"
-        setToolBar(toolbar, "")
+        viewBinding.tvToolbarTitle.text="定位与标签"
+        setToolBar(viewBinding.toolbar, "")
 
         MAX_LATLNG = spGetInt("max_latlng", MAX_LATLNG)
         MAX_REPEAT_LATLNG = spGetInt("max_repeat_latlng", MAX_REPEAT_LATLNG)
@@ -118,14 +136,14 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             openGPS()
-            btn_lat_lng.isEnabled = false
+            viewBinding.btnLatLng.isEnabled = false
         }
         initGpsStatus()
 
-        btn_lat_lng.setOnClickListener {
+        viewBinding.btnLatLng.setOnClickListener {
             onStartLocation()
         }
-        btn_delect_latlng.setOnClickListener {
+        viewBinding.btnDelectRfid.setOnClickListener {
             latLngRfid?.let {
                 if(it.rfid.isNotEmpty() &&  it.wgsLat >0 ){
                     DialogUtil.showConfigDialog(this,"当前定位点信息已完整，确定要修改？"){result->
@@ -138,7 +156,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
 
         }
-        tv_ble_status.setOnClickListener {
+        viewBinding.tvBleStatus.setOnClickListener {
            try {
                when(it.tag.toString().toInt()){
                    1->{
@@ -163,12 +181,12 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
            }
         }
         val mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this))
-        tv_ble_addr.text=MessageFormat.format("读卡器地址：{0}",mac)
+        viewBinding.tvBleAddr.text=MessageFormat.format("读卡器地址：{0}",mac)
         BLE_NFC_CARD = spGetInt("ble_cardread")
-        println("ble=$BLE_NFC_CARD")
+
         initBleInfo()
-        sc_setting_ble.setOnClickListener {
-          val  isChecked = sc_setting_ble.isChecked
+        viewBinding.scSettingBle.setOnClickListener {
+            val  isChecked = viewBinding.scSettingBle.isChecked
             if(isChecked){
                 spSetInt("ble_cardread",1)
                 BLE_NFC_CARD =1
@@ -185,7 +203,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         }
 
 
-        tv_ble_addr.setOnClickListener {
+        viewBinding.tvBleAddr.setOnClickListener {
             startActivity(Intent(this,QppBleDeviceListActivity::class.java))
         }
         initBatchInfo(batch!!)
@@ -198,11 +216,11 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         averageLatlng = LatLngVo()
         repeatCount = 0
         currentLatlng = null
-        btn_lat_lng.tag = "0"
-        btn_lat_lng.text = "开始定位"
+        viewBinding.btnLatLng.tag = "0"
+        viewBinding.btnLatLng.text = "开始定位"
         onStopLocation()
-        btn_delect_latlng.visibility = View.GONE
-        btn_lat_lng.visibility = View.VISIBLE
+        viewBinding.btnDelectLatlng.visibility = View.GONE
+        viewBinding.btnLatLng.visibility = View.VISIBLE
         initLocationInfo()
 
     }
@@ -213,7 +231,56 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                 .request(Manifest.permission.ACCESS_FINE_LOCATION)
                 .subscribe {
                     if(it){
-                        locationManager.addGpsStatusListener(this)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            gnssStatusCallback = object :GnssStatus.Callback(){
+                                override fun onSatelliteStatusChanged(status: GnssStatus) {
+                                    super.onSatelliteStatusChanged(status)
+                                    //实例化卫星状态
+                                    //获取到卫星
+                                    currentSatellite = status.satelliteCount
+                                    accordSatellite = 0
+                                    for (i in 0 until status.satelliteCount) {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                            if(status.getBasebandCn0DbHz(i)> MIN_SNR){
+                                                accordSatellite++
+                                            }
+                                        }
+                                    }
+//                                    status.satellites?.forEach {
+//
+//                                        if(it.snr>= MIN_SNR){
+//                                            accordSatellite++
+//                                        }
+//                                    }
+                                    if(accordSatellite>= MIN_SATELLITE){
+                                        viewBinding.tvCurrentSatellite.text = HtmlCompat.fromHtml(HtmlUtils.getGreenHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
+
+                                    }else{
+                                        viewBinding.tvCurrentSatellite.text = HtmlCompat.fromHtml(HtmlUtils.getRedHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
+
+                                    }
+                                }
+
+                                override fun onFirstFix(ttffMillis: Int) {
+                                    super.onFirstFix(ttffMillis)
+                                }
+
+                                override fun onStarted() {
+                                    super.onStarted()
+                                }
+
+                                override fun onStopped() {
+                                    super.onStopped()
+                                }
+                            }
+
+                            locationManager.registerGnssStatusCallback(gnssStatusCallback!!,null)
+                        }else{
+                            locationManager.addGpsStatusListener(this)
+                        }
+
+
+
                     }else{
                         showMsg("请允许必要的条件")
                     }
@@ -267,15 +334,15 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     private   fun  initBleInfo(){
         if(BLE_NFC_CARD == 0){
-            tv_ble_addr.visibility = View.GONE
-            tv_ble_status.visibility = View.GONE
-            tv_ble_elect.visibility = View.GONE
-            sc_setting_ble.isChecked = false
+            viewBinding.tvBleAddr.visibility = View.GONE
+            viewBinding.tvBleStatus.visibility = View.GONE
+            viewBinding.tvBleElect.visibility = View.GONE
+            viewBinding.scSettingBle.isChecked = false
         }else{
-            tv_ble_addr.visibility = View.VISIBLE
-            tv_ble_status.visibility = View.VISIBLE
-            tv_ble_elect.visibility = View.VISIBLE
-            sc_setting_ble.isChecked = true
+            viewBinding.tvBleAddr.visibility = View.VISIBLE
+            viewBinding.tvBleStatus.visibility = View.VISIBLE
+            viewBinding.tvBleElect.visibility = View.VISIBLE
+            viewBinding.scSettingBle.isChecked = true
             handleConnectStatus( BleQppNfcCameraServer.getInstance(this).current)
         }
     }
@@ -286,19 +353,19 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         batch.uploadedTotal = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.UploadTime.gt(0), LatLngRfidDao.Properties.BatchId.eq(batchId)).buildCount().count().toInt()
         batch.exportedTotal = BatichDbUtil.getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.ExportTime.gt(0), LatLngRfidDao.Properties.BatchId.eq(batchId)).buildCount().count().toInt()
         BatichDbUtil.getBatichDao().save(batch)
-        tv_bacth_name.text = batch.name
-        tv_bacth_total.text = MessageFormat.format("总数：{0}  今日：{1}  已导：{2}  已传：{3}", batch.total, batch.todayTotal, batch.exportedTotal, batch.uploadedTotal)
+        viewBinding.tvBacthName.text = batch.name
+        viewBinding.tvBacthTotal.text = MessageFormat.format("总数：{0}  今日：{1}  已导：{2}  已传：{3}", batch.total, batch.todayTotal, batch.exportedTotal, batch.uploadedTotal)
 
     }
 
 
     private fun onStartLocation() {
-        val tagStr = btn_lat_lng.tag.toString()
+        val tagStr = viewBinding.btnLatLng.tag.toString()
 
         if (tagStr == "1") {
             mDisposable?.dispose()
-            btn_lat_lng.tag = "0"
-            btn_lat_lng.text = "开始定位"
+            viewBinding.btnLatLng.tag = "0"
+            viewBinding.btnLatLng.text = "开始定位"
             cacheLatlngs.clear()
             averageLatlng = LatLngVo()
             onStopLocation()
@@ -318,17 +385,18 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                 .request(Manifest.permission.ACCESS_FINE_LOCATION)
                 .subscribe({
                     if (it) {
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
                         //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
-                        if (BuildConfig.DEBUG) {
-
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
-                        } else {
-                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
-                        }
+//                        if (BuildConfig.DEBUG) {
+//
+//                            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
+//                        } else {
+//
+//                        }
 
                       //  onStartTencentLocation()
-                        btn_lat_lng.tag = "1"
-                        btn_lat_lng.text = "定位中.."
+                        viewBinding.btnLatLng.tag = "1"
+                        viewBinding.btnLatLng.text = "定位中.."
                         mDisposable?.dispose()
                         initLocationInfo()
                         onStartTime()
@@ -350,16 +418,16 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
         if ( cacheLatlngs.size == MAX_LATLNG || accordSatellite>= MIN_SATELLITE) {
             if(cacheLatlngs.size == MAX_LATLNG && accordSatellite>= MIN_SATELLITE){
-                tv_latlng.text = Html.fromHtml(HtmlUtils.getGreenHtml(stringBuilder.toString()))
+                viewBinding.tvLatlng.text = Html.fromHtml(HtmlUtils.getGreenHtml(stringBuilder.toString()))
             }else{
-                tv_latlng.text = Html.fromHtml(HtmlUtils.getColorHtml(stringBuilder.toString(),"#F57F17"))
+                viewBinding.tvLatlng.text = Html.fromHtml(HtmlUtils.getColorHtml(stringBuilder.toString(),"#F57F17"))
 
             }
         } else {
-            tv_latlng.text = Html.fromHtml(stringBuilder.toString())
+            viewBinding.tvLatlng.text = Html.fromHtml(stringBuilder.toString())
 
         }
-        tv_current_latlng.text = "当前定位：无"
+        viewBinding.tvCurrentLatlng.text = "当前定位：无"
         currentLatlng?.apply {
             val stringBuilder1 = StringBuilder("")
             stringBuilder1.append("当前精度：").append(accuracy).append(" 米")
@@ -368,9 +436,9 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                     .append("<br> lng:").append(longitude).append("  ")
             if (accuracy <= MAX_ACCURACY) {
 
-                tv_current_latlng.text = HtmlCompat.fromHtml(HtmlUtils.getGreenHtml(stringBuilder1.toString()),HtmlCompat.FROM_HTML_MODE_LEGACY)
+                viewBinding.tvCurrentLatlng.text = HtmlCompat.fromHtml(HtmlUtils.getGreenHtml(stringBuilder1.toString()),HtmlCompat.FROM_HTML_MODE_LEGACY)
             } else {
-                tv_current_latlng.text = HtmlCompat.fromHtml(HtmlUtils.getColorHtml(stringBuilder1.toString(), "#4d4d4d"),HtmlCompat.FROM_HTML_MODE_LEGACY)
+                viewBinding.tvCurrentLatlng.text = HtmlCompat.fromHtml(HtmlUtils.getColorHtml(stringBuilder1.toString(), "#4d4d4d"),HtmlCompat.FROM_HTML_MODE_LEGACY)
             }
 
         }
@@ -383,7 +451,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         mDisposable = Observable.interval(1, TimeUnit.SECONDS)
                 .compose(RxUtil.IO_Main())
                 .subscribe({
-                    btn_lat_lng.text = MessageFormat.format("定位中...(耗时:{0}s)", (System.currentTimeMillis() - startTime) / 1000)
+                    viewBinding.btnLatLng.text = MessageFormat.format("定位中...(耗时:{0}s)", (System.currentTimeMillis() - startTime) / 1000)
                 }, {
                     it.printStackTrace()
                 })
@@ -391,20 +459,20 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     private fun onStopLocation() {
 
-        val tag = btn_lat_lng.tag
+        val tag = viewBinding.btnLatLng.tag
         if (tag == "1") {
             //手动取消定位
             averageLatlng = LatLngVo()
             cacheLatlngs.clear()
-            btn_lat_lng.text = "开始定位"
-            btn_lat_lng.tag = "0"
-            btn_lat_lng.visibility = View.VISIBLE
-            btn_delect_latlng.visibility = View.GONE
+            viewBinding.btnLatLng.text = "开始定位"
+            viewBinding.btnLatLng.tag = "0"
+            viewBinding.btnLatLng.visibility = View.VISIBLE
+            viewBinding.btnDelectLatlng.visibility = View.GONE
         }
         if (tag == "2") {
-            btn_lat_lng.visibility = View.VISIBLE
-            btn_lat_lng.text="定位完成,点击重新定位"
-            btn_delect_latlng.visibility = View.GONE
+            viewBinding.btnLatLng.visibility = View.VISIBLE
+            viewBinding.btnLatLng.text="定位完成,点击重新定位"
+            viewBinding.btnDelectLatlng.visibility = View.GONE
         }
         initLocationInfo()
         mDisposable?.dispose()
@@ -419,13 +487,13 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             return
         }
 
-        val tag = btn_lat_lng.tag.toString()
+        val tag = viewBinding.btnLatLng.tag.toString()
         if (tag == "2") {
             if (BatichDbUtil.onValRfid(rfid)) {
                 showMsg("当前标签信息已被使用！")
                 return
             }
-            tv_rfid.text = MessageFormat.format("标签ID：{0}", rfid)
+            viewBinding.tvRfid.text = MessageFormat.format("标签ID：{0}", rfid)
             if (null == latLngRfid || null == latLngRfid?.id) {
                 latLngRfid = LatLngRfid().apply {
                     wgsLat = averageLatlng.lat
@@ -444,7 +512,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                         }
                         averageLatlng = LatLngVo()
                         cacheLatlngs.clear()
-                        tv_rfid.text=""
+                        viewBinding.tvRfid.text=""
                         cleanLatLng()
                     }
                 }
@@ -484,34 +552,34 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 0) {
-            btn_lat_lng.isEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+            viewBinding.btnLatLng.isEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         }
     }
 
-    override fun onLocationChanged(location: Location?) {
 
-        location?.let {
+
+    override fun onLocationChanged(location: Location) {
+        location.let {
 
             if (it.accuracy <=MAX_ACCURACY && it.accuracy>0F && accordSatellite>= MIN_SATELLITE) {
                 cacheLatlngs.add(LatLngVo(it.latitude, it.longitude))
                 var lat = 0.0
                 var lng = 0.0
                 if (cacheLatlngs.size >= MAX_LATLNG) {
-                    btn_lat_lng.tag = "2"
-                    cacheLatlngs.sortBy {
-                         latlngVo ->
+                    viewBinding.btnLatLng.tag = "2"
+                    cacheLatlngs.sortBy { latlngVo ->
                         latlngVo.lng *latlngVo.lat
                     }
                     val  removeLen = (MAX_LATLNG*0.05).toInt()
 
                     if(removeLen>0){
                         //去除前面第X个
-                       cacheLatlngs.drop(removeLen)
+                        cacheLatlngs.drop(removeLen)
                         var  index = 0
-                       cacheLatlngs.dropLastWhile {
-                           index++
-                           index<= removeLen
-                       }
+                        cacheLatlngs.dropLastWhile {
+                            index++
+                            index<= removeLen
+                        }
 
                     }
                     onStopLocation()
@@ -524,8 +592,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
                     averageLatlng.lat = BigDecimal.valueOf(averageLatlng.lat).setScale(6,BigDecimal.ROUND_HALF_UP).toDouble()
                     averageLatlng.lng = BigDecimal.valueOf(averageLatlng.lng).setScale(6,BigDecimal.ROUND_HALF_UP).toDouble()
-                    latLngRfid?.let {
-                        latlng->
+                    latLngRfid?.let { latlng->
                         if(!latlng.rfid.isNullOrEmpty()){
                             latlng.wgsLat = averageLatlng.lat
                             latlng.wgsLng = averageLatlng.lng
@@ -558,7 +625,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                     if (it.latitude == latlng.latitude && it.longitude == latlng.longitude) {
                         repeatCount++
                         if (repeatCount >= MAX_REPEAT_LATLNG) {
-                            btn_lat_lng.tag = "2"
+                            viewBinding.btnLatLng.tag = "2"
                             averageLatlng = LatLngVo(latlng.latitude, latlng.longitude)
                             cacheLatlngs.clear()
                             for (index in 1..MAX_LATLNG) {
@@ -578,17 +645,10 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         }
     }
 
-    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
-        println("onStatusChanged")
-    }
+    
+   
 
-    override fun onProviderEnabled(provider: String?) {
-        println("onProviderEnabled")
-    }
-
-    override fun onProviderDisabled(provider: String?) {
-        println("onProviderDisabled")
-    }
+   
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -702,25 +762,25 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     override fun handleConnectStatus(conSttus: ConStatus) {
         val bledrable = when (conSttus) {
             ConStatus.CONNECTED -> {
-                tv_ble_status.tag = "5"
+                viewBinding.tvBleStatus.tag = "5"
                 resources.getDrawable(R.drawable.ic_connected)
 
             }
             ConStatus.CONNECTFAIL -> {
-                tv_ble_status.tag = "4"
+                viewBinding.tvBleStatus.tag = "4"
                 resources.getDrawable(R.drawable.ic_connectfail)
             }
             ConStatus.CONNECTING -> {
-                tv_ble_status.tag = "3"
+                viewBinding.tvBleStatus.tag = "3"
                 resources.getDrawable(R.drawable.ic_connectfail)
             }
             ConStatus.NONE -> {
-                tv_ble_status.tag = "1"
+                viewBinding.tvBleStatus.tag = "1"
                 resources.getDrawable(R.drawable.ic_none)
             }
 
             ConStatus.UNCONNECT -> {
-                tv_ble_status.tag = "2"
+                viewBinding.tvBleStatus.tag = "2"
                 resources.getDrawable(R.drawable.ic_connectfail)
             }
             else -> {
@@ -730,13 +790,13 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
         if (null != bledrable) {
             bledrable.setBounds(0, 0, bledrable.minimumWidth, bledrable.minimumHeight)
-            tv_ble_status.setCompoundDrawables(bledrable, null, null, null)
-            tv_ble_status.text = conSttus.getName()
+            viewBinding.tvBleStatus.setCompoundDrawables(bledrable, null, null, null)
+            viewBinding.tvBleStatus.text = conSttus.getName()
         }
     }
 
     override fun handleElectricity(elect: Int) {
-        tv_ble_elect.text=MessageFormat.format("电量：{0}%",elect)
+        viewBinding.tvBleElect.text=MessageFormat.format("电量：{0}%",elect)
     }
 
     override fun onGpsStatusChanged(event: Int) {
@@ -759,10 +819,10 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
                         }
                    }
                    if(accordSatellite>= MIN_SATELLITE){
-                       tv_current_satellite.text = HtmlCompat.fromHtml(HtmlUtils.getGreenHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
+                       viewBinding.tvCurrentSatellite.text = HtmlCompat.fromHtml(HtmlUtils.getGreenHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
 
                    }else{
-                       tv_current_satellite.text = HtmlCompat.fromHtml(HtmlUtils.getRedHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
+                       viewBinding.tvCurrentSatellite.text = HtmlCompat.fromHtml(HtmlUtils.getRedHtml("可见卫星数：$currentSatellite    信噪比>$MIN_SNR  卫星数：$accordSatellite"), HtmlCompat.FROM_HTML_MODE_LEGACY)
 
                    }
                }
@@ -779,9 +839,14 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     }
 
     override fun onDestroy() {
-         onStopLocation()
-         locationManager.removeGpsStatusListener(this)
-
         super.onDestroy()
+        onStopLocation()
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N){
+            if(null != gnssStatusCallback){
+                locationManager.unregisterGnssStatusCallback(gnssStatusCallback!!)
+            }
+        }else{
+            locationManager.removeGpsStatusListener(this)
+        }
     }
 }

@@ -100,16 +100,13 @@ public class QppBleDeviceListActivity extends ListActivity {
   }
 
   @Override public boolean onOptionsItemSelected(MenuItem item) {
-    switch (item.getItemId()) {
-      case R.id.menu_scan:
-        mLeDeviceListAdapter.clear();
-        scanLeDevice(true);
-        break;
-      case R.id.menu_stop:
-        scanLeDevice(false);
-        break;
-        default:
+    if(item.getItemId() == R.id.menu_scan){
+      mLeDeviceListAdapter.clear();
+      scanLeDevice(true);
+    }else if(item.getItemId() == R.id.menu_stop){
+      scanLeDevice(false);
     }
+
     return true;
   }
 

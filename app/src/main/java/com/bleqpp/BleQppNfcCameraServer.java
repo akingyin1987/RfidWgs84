@@ -24,7 +24,7 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 import androidx.annotation.RequiresApi;
-import com.akingyin.rfidwgs.BuildConfig;
+
 import com.akingyin.rfidwgs.R;
 import com.akingyin.rfidwgs.ext.PreferencesExtKt;
 import com.blankj.utilcode.util.ConvertUtils;
@@ -345,7 +345,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
   public   void   showToast(String  msg){
     System.out.println("msg="+msg);
     try {
-      if(BuildConfig.DEBUG){
+      //if(BuildConfig.DEBUG){
         //if(null != mContextWeakReference.get()){
         //  callbackHandle.post(new Runnable() {
         //    @Override public void run() {
@@ -355,7 +355,7 @@ public class BleQppNfcCameraServer   implements SDKInterface, BluetConnectListio
         //
         //}
 
-      }
+     // }
     }catch (Exception e){
       e.printStackTrace();
     }

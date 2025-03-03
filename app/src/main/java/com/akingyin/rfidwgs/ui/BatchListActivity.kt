@@ -6,6 +6,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.akingyin.rfidwgs.R
+import com.akingyin.rfidwgs.databinding.ActivityBatchListBinding
 import com.akingyin.rfidwgs.db.Batch
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.ext.currentTimeMillis
@@ -13,7 +14,7 @@ import com.akingyin.rfidwgs.ui.adapter.BatchListAdapter
 import com.akingyin.rfidwgs.util.DialogUtil
 import com.bleqpp.BleQppNfcCameraServer
 import com.zlcdgroup.nfcsdk.ConStatus
-import kotlinx.android.synthetic.main.activity_batch_list.*
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
@@ -33,15 +34,29 @@ class BatchListActivity : BaseActivity() {
 
     private lateinit var  batchListAdapter: BatchListAdapter
 
+
+    private lateinit var  viewBind: ActivityBatchListBinding
+
+
+    override val useViewBind: Boolean
+        get() = true
+
     override fun getLayoutId()= R.layout.activity_batch_list
+
+
+    override fun initViewBind() {
+        super.initViewBind()
+        viewBind = ActivityBatchListBinding.inflate(layoutInflater)
+        setContentView(viewBind.root)
+    }
 
     override fun initView() {
 
-        setToolBar(toolbar,"批次管理")
+        setToolBar(viewBind.toolbar,"批次管理")
         batchListAdapter = BatchListAdapter()
-        recycler.layoutManager = LinearLayoutManager(this)
-        recycler.itemAnimator = DefaultItemAnimator()
-        recycler.adapter = batchListAdapter
+        viewBind.recycler.layoutManager = LinearLayoutManager(this)
+        viewBind.recycler.itemAnimator = DefaultItemAnimator()
+        viewBind.recycler.adapter = batchListAdapter
 
         batchListAdapter.setOnItemClickListener { _, _, position ->
             batchListAdapter.getItem(position).apply {
@@ -57,7 +72,7 @@ class BatchListActivity : BaseActivity() {
             onShowDeleteBatch(batchListAdapter.getItem(position),position)
             return@setOnItemLongClickListener true
         }
-        fab_loc.setOnClickListener {
+        viewBind.fabLoc.setOnClickListener {
             onShowAddBatch()
         }
     }
@@ -101,6 +116,7 @@ class BatchListActivity : BaseActivity() {
     }
 
     private fun   flushData(){
+
         GlobalScope.launch(Dispatchers.Main) {
 
             batchListAdapter.setNewInstance(getBatchList().toMutableList())

@@ -22,9 +22,10 @@ class RfidLatlngApp  : Application() {
         Ext.with(this)
         DbCore.enableQueryBuilderLog()
         DbCore.init(this)
-        if(BuildConfig.DEBUG){
-            showDebugDBAddressLogToast(this)
-        }
+
+//        if(BuildConfig.DEBUG){
+//            showDebugDBAddressLogToast(this)
+//        }
 
         AppFileConfig.APP_FILE_ROOT = AppFileConfig.getAppFileRoot(this).absolutePath
     }
@@ -34,14 +35,14 @@ class RfidLatlngApp  : Application() {
     }
 
     fun showDebugDBAddressLogToast(context: Context) {
-        if (BuildConfig.DEBUG) {
-            try {
-                val debugDB = Class.forName("com.amitshekhar.DebugDB")
-                val getAddressLog: Method = debugDB.getMethod("getAddressLog")
-                val value: Any = getAddressLog.invoke(null)
-                Toast.makeText(context, value as String, Toast.LENGTH_LONG).show()
-            } catch (ignore: Exception) {
-            }
-        }
+   //     if (BuildConfig.DEBUG) {
+//            try {
+//                val debugDB = Class.forName("com.amitshekhar.DebugDB")
+//                val getAddressLog: Method = debugDB.getMethod("getAddressLog")
+//                val value: Any = getAddressLog.invoke(null)
+//                Toast.makeText(context, value as String, Toast.LENGTH_LONG).show()
+//            } catch (ignore: Exception) {
+//            }
+//        }
     }
 }

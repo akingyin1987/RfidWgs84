@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.akingyin.rfidwgs">
+    >
 
   <!-- Android Q新增权限，允许应用在后台发起定位，如应用target为Q，请添加此权限 -->
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -30,6 +30,9 @@
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
+
   <uses-feature
       android:name="android.hardware.nfc"
       android:required="true"/>
@@ -43,10 +46,12 @@
       android:supportsRtl="true"
       android:theme="@style/AppTheme" >
     <meta-data android:name="TencentMapSDK" android:value="UHGBZ-DWHW4-K25UZ-DKD47-BQ4DH-XGF5V" />
-    <service android:name="com.tencent.map.geolocation.s" />
+    <service android:name="com.tencent.map.geolocation.s"
+        android:exported="false"/>
     <activity android:name=".ui.BatchListActivity"
         android:windowSoftInputMode="adjustPan"
         android:screenOrientation="portrait"
+        android:exported="true"
         android:launchMode="singleTop">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />

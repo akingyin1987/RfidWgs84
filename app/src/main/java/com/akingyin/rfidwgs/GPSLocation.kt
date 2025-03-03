@@ -11,16 +11,15 @@ import android.os.Bundle
  * @ Date 2019/12/6 11:56
  * @version V1.0
  */
-class GPSLocation constructor(var mGpsLocationListener: GPSLocationListener?) :LocationListener {
+class GPSLocation(private var mGpsLocationListener: GPSLocationListener?) :LocationListener {
 
 
 
 
-    override fun onLocationChanged(location: Location?) {
-        location?.let {
-            mGpsLocationListener?.UpdateLocation(it)
-        }
 
+
+    override fun onLocationChanged(location: Location) {
+        mGpsLocationListener?.UpdateLocation(location)
     }
 
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
@@ -44,11 +43,16 @@ class GPSLocation constructor(var mGpsLocationListener: GPSLocationListener?) :L
         }
     }
 
-    override fun onProviderEnabled(provider: String?) {
+
+    override fun onProviderDisabled(provider: String) {
+        super.onProviderDisabled(provider)
+        mGpsLocationListener?.UpdateGPSProviderStatus(GPSProviderStatus.GPS_DISABLED)
+    }
+
+    override fun onProviderEnabled(provider: String) {
+        super.onProviderEnabled(provider)
         mGpsLocationListener?.UpdateGPSProviderStatus(GPSProviderStatus.GPS_ENABLED)
     }
 
-    override fun onProviderDisabled(provider: String?) {
-        mGpsLocationListener?.UpdateGPSProviderStatus(GPSProviderStatus.GPS_DISABLED)
-    }
+
 }

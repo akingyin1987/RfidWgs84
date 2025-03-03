@@ -117,7 +117,9 @@ class GPSLocationManager  private constructor(context: Activity){
             }
 
             val lastKnownLocation: Location? = locationManager.getLastKnownLocation(mLocateType)
-            mGPSLocation.onLocationChanged(lastKnownLocation)
+            if(null != lastKnownLocation){
+                mGPSLocation.onLocationChanged(lastKnownLocation)
+            }
             //备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
             locationManager.requestLocationUpdates(mLocateType, mMinTime, mMinDistance, mGPSLocation)
 

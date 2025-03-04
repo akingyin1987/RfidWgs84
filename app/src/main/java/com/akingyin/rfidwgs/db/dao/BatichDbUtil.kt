@@ -1,6 +1,7 @@
 package com.akingyin.rfidwgs.db.dao
 
 import com.akingyin.rfidwgs.db.Batch
+import com.akingyin.rfidwgs.db.BleDeviceRepairInfo
 import com.akingyin.rfidwgs.db.LatLngRfid
 import java.util.*
 
@@ -10,6 +11,8 @@ import java.util.*
  * @ Date 2019/12/6 14:24
  * @version V1.0
  */
+
+
 object BatichDbUtil {
 
 
@@ -21,10 +24,25 @@ object BatichDbUtil {
         return  DbCore.getDaoSession().latLngRfidDao
     }
 
+    @JvmStatic
+    fun getBleDeviceRepairInfoDao():BleDeviceRepairInfoDao{
+        return  DbCore.getDaoSession().bleDeviceRepairInfoDao
+    }
+
+    /**
+     * 获取批次下的设备维修信息
+     * @param batchId Long
+     * @param bleDeviceAddress String
+     * @return BleDeviceRepairInfo?
+     */
+    fun  getBleDeviceRepairInfo(batchId:Long,bleDeviceAddress:String):BleDeviceRepairInfo?{
+        return getBleDeviceRepairInfoDao().queryBuilder()
+            .where(BleDeviceRepairInfoDao.Properties.BatchId.eq(batchId),BleDeviceRepairInfoDao.Properties.BleDeviceAddress.eq(bleDeviceAddress)).unique()
+    }
+
     fun   findAllBatich():List<Batch>{
         return  DbCore.getDaoSession().batchDao.queryBuilder().orderDesc(BatchDao.Properties.CreateTime).list()
                 .map {
-
                     it.todayTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.OperationTime.gt(getTodayStartTime())).buildCount().count().toInt()
                     it.exportedTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.ExportTime.gt(0)).buildCount().count().toInt()
                     it.uploadedTotal = getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(it.id),LatLngRfidDao.Properties.UploadTime.gt(0)).buildCount().count().toInt()
@@ -36,6 +54,7 @@ object BatichDbUtil {
     fun   onDeleteBatch(batch: Batch){
         getLatlngRfidDao().queryBuilder().where(LatLngRfidDao.Properties.BatchId.eq(batch.id)).buildDelete().executeDeleteWithoutDetachingEntities()
         getBatichDao().delete(batch)
+        getBleDeviceRepairInfoDao().queryBuilder().where(BleDeviceRepairInfoDao.Properties.BatchId.eq(batch.id)).buildDelete().executeDeleteWithoutDetachingEntities()
     }
 
 

@@ -31,10 +31,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
 import com.akingyin.rfidwgs.R;
+import com.akingyin.rfidwgs.db.BleDeviceRepairInfo;
+import com.akingyin.rfidwgs.db.dao.BatichDbUtil;
+import com.akingyin.rfidwgs.db.dao.BleDeviceRepairInfoDao;
+import com.akingyin.rfidwgs.util.RxUtil;
+
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class QppBleDeviceListActivity extends ListActivity {
@@ -50,6 +63,9 @@ public class QppBleDeviceListActivity extends ListActivity {
 
   public TextView local_paired_devices;
 
+  public Long batchId;
+  public   Map<String,Integer> repairCache = new HashMap<>();
+
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.select_bledevice_activity);
@@ -58,6 +74,8 @@ public class QppBleDeviceListActivity extends ListActivity {
     }
 
     mHandler = new Handler(Looper.getMainLooper());
+    batchId = getIntent().getLongExtra("batchId", 0L);
+    System.out.println("batchId:" + batchId);
     local_paired_devices =  findViewById(R.id.local_paired_devices);
     String  mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this));
     local_paired_devices.setText(MessageFormat.format("当前：{0}", mac));
@@ -83,6 +101,27 @@ public class QppBleDeviceListActivity extends ListActivity {
     }
     BleQppBluetoothServer.getInstance(this).connectDestroy();
     BleQppNfcCameraServer.getInstance(this).connectDestroy();
+    Disposable disposable = Observable.create(new ObservableOnSubscribe<List<BleDeviceRepairInfo>>() {
+      @Override
+      public void subscribe(ObservableEmitter<List<BleDeviceRepairInfo>> emitter) throws Exception {
+        emitter.onNext(BatichDbUtil.getBleDeviceRepairInfoDao().queryBuilder().where(BleDeviceRepairInfoDao.Properties.BatchId.eq(batchId)).list());
+
+      }
+    }).compose(RxUtil.IO_IO())
+            .subscribe(new Consumer<List<BleDeviceRepairInfo>>() {
+              @Override
+              public void accept(List<BleDeviceRepairInfo> bleDeviceRepairInfos) throws Exception {
+                repairCache.clear();
+                for(BleDeviceRepairInfo info : bleDeviceRepairInfos){
+                  repairCache.put(info.getBleDeviceAddress(), info.getRepairStatus());
+                }
+              }
+            }, new Consumer<Throwable>() {
+              @Override
+              public void accept(Throwable throwable) throws Exception {
+
+              }
+            });
   }
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {
@@ -309,6 +348,7 @@ public class QppBleDeviceListActivity extends ListActivity {
         viewHolder.deviceAddress =  view.findViewById(R.id.text_device_address);
         viewHolder.deviceName =  view.findViewById(R.id.text_device_name);
         viewHolder.rssi =  view.findViewById(R.id.text_rssi);
+        viewHolder.repairState = view.findViewById(R.id.text_device_repair_state);
         view.setTag(viewHolder);
       } else {
         viewHolder = (ViewHolder) view.getTag();
@@ -324,6 +364,19 @@ public class QppBleDeviceListActivity extends ListActivity {
       }
       viewHolder.deviceAddress.setText(device.getAddress());
       viewHolder.rssi.setText("RSSI: " + BleDevice.rssi + "db");
+      if(BleDevice.repairState == 0){
+        viewHolder.repairState.setText("维修状态：未维修");
+        viewHolder.repairState.setTextColor(Color.BLACK);
+      }else if(BleDevice.repairState == 1){
+        viewHolder.repairState.setText("维修状态：维修中");
+        viewHolder.repairState.setTextColor(Color.RED);
+      }else if(BleDevice.repairState == 2){
+        viewHolder.repairState.setTextColor(Color.RED);
+        viewHolder.repairState.setText("维修状态：已损坏");
+      }else if(BleDevice.repairState == 3){
+        viewHolder.repairState.setTextColor(Color.GREEN);
+        viewHolder.repairState.setText("维修状态：已维修");
+      }
       if(!TextUtils.isEmpty(selectMac)){
          if(TextUtils.equals(selectMac,device.getAddress())){
            viewHolder.deviceAddress.setTextColor(Color.RED);
@@ -377,6 +430,7 @@ public class QppBleDeviceListActivity extends ListActivity {
            BleDevice bleDevice = new BleDevice();
           bleDevice.device = device;
           bleDevice.rssi = rssi;
+          bleDevice.repairState = null == repairCache.get(device.getAddress())?0:repairCache.get(device.getAddress());
           mLeDeviceListAdapter.addDevice(bleDevice);
 
         }
@@ -387,11 +441,13 @@ public class QppBleDeviceListActivity extends ListActivity {
   static class BleDevice {
     BluetoothDevice device;
     int rssi;
+    int repairState;
   }
 
   static class ViewHolder {
     TextView deviceName;
     TextView deviceAddress;
+    TextView repairState;
     TextView rssi;
   }
 

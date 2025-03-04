@@ -20,11 +20,15 @@ import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.app.ActivityCompat
 import androidx.core.text.HtmlCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.StackingBehavior
 import com.akingyin.rfidwgs.R
 import com.akingyin.rfidwgs.databinding.ActivityRfidLatlngEditBinding
 import com.akingyin.rfidwgs.db.Batch
+import com.akingyin.rfidwgs.db.BleDeviceRepairInfo
 import com.akingyin.rfidwgs.db.LatLngRfid
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil
 import com.akingyin.rfidwgs.db.dao.LatLngRfidDao
@@ -47,7 +51,6 @@ import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
@@ -133,6 +136,44 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             finish()
             return
         }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED){
+                val mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this@LatlngRfidEditActivity))
+                if(mac.isNotEmpty()){
+                    withContext(IO){
+                        BatichDbUtil.getBleDeviceRepairInfo(batchId,mac)
+                    }?.let {state->
+                        when(state.repairStatus){
+                            0->viewBinding.rbUnRepair.isChecked=true
+                            1->viewBinding.rbRepairIng.isChecked=true
+                            2->viewBinding.rbDamage.isChecked=true
+                            3->viewBinding.rbRepairCompleted.isChecked=true
+                        }
+                    }
+
+                }
+                BLE_NFC_CARD = spGetInt("ble_cardread")
+                if(mac.isNotEmpty() && BLE_NFC_CARD == 1){
+                    viewBinding.rgBleDevice.visibility = View.VISIBLE
+                }else{
+                    viewBinding.rgBleDevice.visibility = View.GONE
+                }
+
+            }
+        }
+        viewBinding.rbUnRepair.setOnClickListener {
+            saveRepairStatus(0)
+        }
+        viewBinding.rbRepairIng.setOnClickListener {
+            saveRepairStatus(1)
+        }
+        viewBinding.rbDamage.setOnClickListener {
+            saveRepairStatus(2)
+        }
+        viewBinding.rbRepairCompleted.setOnClickListener {
+            saveRepairStatus(3)
+        }
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             openGPS()
@@ -160,7 +201,14 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
            try {
                when(it.tag.toString().toInt()){
                    1->{
-                       startActivity(Intent(this@LatlngRfidEditActivity,QppBleDeviceListActivity::class.java))
+                       startActivity(Intent(this@LatlngRfidEditActivity,QppBleDeviceListActivity::class.java).apply{
+                           putExtra("batchId",batchId)
+                       })
+                   }
+                   3->{
+                       startActivity(Intent(this@LatlngRfidEditActivity,QppBleDeviceListActivity::class.java).apply{
+                           putExtra("batchId",batchId)
+                       })
                    }
                    2->{
                        handleConnectStatus(ConStatus.CONNECTING)
@@ -204,12 +252,37 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
 
         viewBinding.tvBleAddr.setOnClickListener {
-            startActivity(Intent(this,QppBleDeviceListActivity::class.java))
+            startActivity(Intent(this,QppBleDeviceListActivity::class.java).apply {
+                putExtra("batchId",batchId)
+            })
         }
         initBatchInfo(batch!!)
 
     }
 
+
+    private fun saveRepairStatus(status:Int){
+        val mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this))
+        lifecycleScope.launch {
+            withContext(IO){
+               val repairInfo =  BatichDbUtil.getBleDeviceRepairInfo(batchId,mac)?:BleDeviceRepairInfo().apply {
+                    batchId = batch?.id?:0
+                    bleDeviceAddress = mac
+                    createTime = System.currentTimeMillis()
+                    updateTime = createTime
+                }
+                repairInfo.repairStatus = status
+                if(null != repairInfo.id && repairInfo.id>0){
+                    repairInfo.updateTime = System.currentTimeMillis()
+                    BatichDbUtil.getBleDeviceRepairInfoDao().update(repairInfo)
+                }else{
+                    BatichDbUtil.getBleDeviceRepairInfoDao().insert(repairInfo)
+                }
+
+
+            }
+        }
+    }
 
     private   fun   cleanLatLng(){
         cacheLatlngs.clear()
@@ -334,11 +407,15 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     private   fun  initBleInfo(){
         if(BLE_NFC_CARD == 0){
+            viewBinding.ivBleAddr.visibility = View.GONE
             viewBinding.tvBleAddr.visibility = View.GONE
+
             viewBinding.tvBleStatus.visibility = View.GONE
             viewBinding.tvBleElect.visibility = View.GONE
             viewBinding.scSettingBle.isChecked = false
         }else{
+
+            viewBinding.ivBleAddr.visibility = View.VISIBLE
             viewBinding.tvBleAddr.visibility = View.VISIBLE
             viewBinding.tvBleStatus.visibility = View.VISIBLE
             viewBinding.tvBleElect.visibility = View.VISIBLE
@@ -692,7 +769,8 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             showMsg("当前批次没有可以导出的数据")
             return
         }
-        GlobalScope.launch(Main) {
+
+        lifecycleScope.launch(Main) {
             val dialog = MaterialDialog.Builder(this@LatlngRfidEditActivity).autoDismiss(true)
                     .progress(false, 0)
                     .stackingBehavior(StackingBehavior.ADAPTIVE)
@@ -716,11 +794,11 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
     private fun showSettingDialog() {
         val view = layoutInflater.inflate(R.layout.custiom_dialog_setting, null)
-        view.findViewById<AppCompatEditText>(R.id.edit_max_accuracy).setText(MAX_ACCURACY.toString())
-        view.findViewById<AppCompatEditText>(R.id.edit_max_repeat).setText(MAX_REPEAT_LATLNG.toString())
-        view.findViewById<AppCompatEditText>(R.id.edit_max_loc).setText(MAX_LATLNG.toString())
-        view.findViewById<AppCompatEditText>(R.id.edit_min_satellite).setText(MIN_SATELLITE.toString())
-        view.findViewById<AppCompatEditText>(R.id.edit_min_snv).setText(MIN_SNR.toString())
+        view.findViewById<AppCompatEditText>(R.id.edit_max_accuracy).setText("$MAX_ACCURACY")
+        view.findViewById<AppCompatEditText>(R.id.edit_max_repeat).setText("$MAX_REPEAT_LATLNG")
+        view.findViewById<AppCompatEditText>(R.id.edit_max_loc).setText("$MAX_LATLNG")
+        view.findViewById<AppCompatEditText>(R.id.edit_min_satellite).setText("$MIN_SATELLITE")
+        view.findViewById<AppCompatEditText>(R.id.edit_min_snv).setText("$MIN_SNR")
         MaterialDialog.Builder(this).title("定位参数设置")
                 .customView(view, true)
                 .positiveText("确定")

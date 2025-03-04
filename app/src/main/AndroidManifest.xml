@@ -33,6 +33,8 @@
   <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
   <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
 
+
+
   <uses-feature
       android:name="android.hardware.nfc"
       android:required="true"/>

@@ -148,7 +148,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         BLE_NFC_CARD = spGetInt("ble_cardread")
 
         if(isSupportBle && BLE_NFC_CARD == 1){
-            println("注册------>>>${System.currentTimeMillis()}")
+
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
                 if(ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this,android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED){
                     requestPermissions(arrayOf(android.Manifest.permission.BLUETOOTH_SCAN,android.Manifest.permission.BLUETOOTH_CONNECT),1)
@@ -248,7 +248,7 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         })
     }
 
-    lateinit var  mainHandler  :MyHandler
+    private lateinit var  mainHandler  :MyHandler
     override fun onDestroy() {
         mainHandler.removeCallbacksAndMessages(null)
         AppManager.getInstance()?.finishActivity(this)

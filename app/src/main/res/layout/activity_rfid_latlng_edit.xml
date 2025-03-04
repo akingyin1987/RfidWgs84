@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:background="@color/bg"
     android:layout_width="match_parent"
@@ -123,16 +124,78 @@
           android:layout_marginBottom="2dp"
           android:background="@color/diy_gray2"/>
 
-      <TextView
+      <androidx.appcompat.widget.LinearLayoutCompat
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
-          android:textColor="@color/black_de"
-          android:textSize="16sp"
-          android:paddingTop="4dp"
-          android:paddingBottom="4dp"
-          android:visibility="gone"
-          android:text="读卡器地址："
-          android:id="@+id/tv_ble_addr"/>
+
+          android:minHeight="48dp">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black_de"
+            android:textSize="16sp"
+            android:layout_gravity="center"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:visibility="gone"
+            android:text="读卡器地址："
+
+            android:id="@+id/tv_ble_addr"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="2dp"
+            android:id="@+id/iv_ble_addr"
+            android:src="@drawable/baseline_arrow_forward_ios_24"/>
+      </androidx.appcompat.widget.LinearLayoutCompat>
+
+      <View
+          android:layout_width="match_parent"
+          android:layout_height="1dp"
+          android:layout_marginTop="2dp"
+          android:layout_marginBottom="2dp"
+          android:background="@color/diy_gray2"/>
+
+      <RadioGroup
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:padding="4dp"
+          android:id="@+id/rg_ble_device"
+          tools:visibility="visible"
+          android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="维修状态："/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/rb_un_repair"
+            android:text="未维修"/>
+         <RadioButton
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:id="@+id/rb_repair_ing"
+             android:text="维修中"/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/rb_damage"
+            android:text="损坏"/>
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/rb_repair_completed"
+            android:text="维修完成"/>
+      </RadioGroup>
+
+
 
     </LinearLayout>
 

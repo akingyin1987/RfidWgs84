@@ -2,11 +2,10 @@ package com.akingyin.rfidwgs
 
 import android.app.Application
 import android.content.Context
-import android.widget.Toast
 import com.akingyin.rfidwgs.config.AppFileConfig
 import com.akingyin.rfidwgs.db.dao.DbCore
 import com.akingyin.rfidwgs.ext.Ext
-import java.lang.reflect.Method
+import com.tencent.bugly.crashreport.CrashReport
 
 
 /**
@@ -22,6 +21,9 @@ class RfidLatlngApp  : Application() {
         Ext.with(this)
         DbCore.enableQueryBuilderLog()
         DbCore.init(this)
+        CrashReport.enableBugly(true)
+        CrashReport.initCrashReport(this, "900021733", true)
+        CrashReport.setUserSceneTag(this, 261841)
 
 //        if(BuildConfig.DEBUG){
 //            showDebugDBAddressLogToast(this)

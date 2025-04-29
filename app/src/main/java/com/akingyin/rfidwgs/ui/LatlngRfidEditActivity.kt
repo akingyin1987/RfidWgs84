@@ -123,6 +123,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
         viewBinding.tvToolbarTitle.text="定位与标签"
         setToolBar(viewBinding.toolbar, "")
 
+
         MAX_LATLNG = spGetInt("max_latlng", MAX_LATLNG)
         MAX_REPEAT_LATLNG = spGetInt("max_repeat_latlng", MAX_REPEAT_LATLNG)
         MAX_ACCURACY = spGetFloat("max_accuracy", MAX_ACCURACY)
@@ -137,6 +138,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             return
         }
 
+       // KsiSharedStorageHelper.setBluetoothMac(KsiSharedStorageHelper.getPreferences(this),"123")
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED){
                 val mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this@LatlngRfidEditActivity))
@@ -154,11 +156,13 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
 
                 }
                 BLE_NFC_CARD = spGetInt("ble_cardread")
+                viewBinding.tvBleAddr.text=MessageFormat.format("读卡器地址：{0}",mac)
                 if(mac.isNotEmpty() && BLE_NFC_CARD == 1){
                     viewBinding.rgBleDevice.visibility = View.VISIBLE
                 }else{
                     viewBinding.rgBleDevice.visibility = View.GONE
                 }
+
 
             }
         }
@@ -250,7 +254,11 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             initBleInfo()
         }
 
-
+        viewBinding.llBleAddr.setOnClickListener {
+            startActivity(Intent(this,QppBleDeviceListActivity::class.java).apply {
+                putExtra("batchId",batchId)
+            })
+        }
         viewBinding.tvBleAddr.setOnClickListener {
             startActivity(Intent(this,QppBleDeviceListActivity::class.java).apply {
                 putExtra("batchId",batchId)
@@ -560,6 +568,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
     private   var  dialog:MaterialDialog?=null
     private   var    readRfidCount = 0
     override fun handTag(rfid: String, block0: String?) {
+        showMsg("标签：$rfid  区块：$block0")
         if(null != dialog && dialog!!.isShowing){
             return
         }
@@ -611,7 +620,7 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
             }
 
         }else{
-            showMsg("当前正在定位或定位信息不完整！")
+           // showMsg("当前正在定位或定位信息不完整！")
         }
 
 
@@ -915,6 +924,8 @@ class LatlngRfidEditActivity : BaseActivity(), LocationListener, GpsStatus.Liste
            }
        }
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()

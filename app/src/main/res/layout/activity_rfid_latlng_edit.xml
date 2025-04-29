@@ -127,7 +127,7 @@
       <androidx.appcompat.widget.LinearLayoutCompat
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
-
+          android:id="@+id/ll_ble_addr"
           android:minHeight="48dp">
         <TextView
             android:layout_width="0dp"

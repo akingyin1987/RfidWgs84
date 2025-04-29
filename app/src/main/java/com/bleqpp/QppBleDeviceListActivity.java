@@ -75,7 +75,7 @@ public class QppBleDeviceListActivity extends ListActivity {
 
     mHandler = new Handler(Looper.getMainLooper());
     batchId = getIntent().getLongExtra("batchId", 0L);
-    System.out.println("batchId:" + batchId);
+
     local_paired_devices =  findViewById(R.id.local_paired_devices);
     String  mac = KsiSharedStorageHelper.getBluetoothMac(KsiSharedStorageHelper.getPreferences(this));
     local_paired_devices.setText(MessageFormat.format("当前：{0}", mac));

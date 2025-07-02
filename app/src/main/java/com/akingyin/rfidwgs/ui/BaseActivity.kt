@@ -69,7 +69,20 @@ abstract class BaseActivity : AppCompatActivity(), RfidConnectorInterface {
         if(null == mAdapter){
             showMsg("当前终端不支持NFC")
         }else{
-            mPendingIntent = PendingIntent.getActivity(this,0, Intent(this,javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0)
+            mPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.getActivity(
+                    this, 0,
+                    Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+            } else {
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    0
+                )
+            }
             val ndef = IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
             try {
                 ndef.addDataType("*/*")

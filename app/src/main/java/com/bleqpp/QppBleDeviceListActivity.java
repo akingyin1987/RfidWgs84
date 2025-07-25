@@ -1,5 +1,6 @@
 package com.bleqpp;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -19,17 +20,24 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import com.akingyin.rfidwgs.R;
 import com.akingyin.rfidwgs.db.BleDeviceRepairInfo;
 import com.akingyin.rfidwgs.db.dao.BatichDbUtil;
@@ -39,6 +47,7 @@ import com.akingyin.rfidwgs.util.RxUtil;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,6 +57,7 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Predicate;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class QppBleDeviceListActivity extends ListActivity {
@@ -66,13 +76,40 @@ public class QppBleDeviceListActivity extends ListActivity {
   public Long batchId;
   public   Map<String,Integer> repairCache = new HashMap<>();
 
+  private EditText  editText;
+
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.select_bledevice_activity);
     if(null != getActionBar()){
       getActionBar().setTitle("选择蓝牙设备");
     }
+    editText =  findViewById(R.id.edit_input);
+    editText.addTextChangedListener(new TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
+      }
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+      }
+
+      @Override
+      public void afterTextChanged(Editable s) {
+//         if(null != mLeDeviceListAdapter && null != s){
+//           mLeDeviceListAdapter.setSelectMac(s.toString());
+//         }
+      }
+    });
+    Button button =findViewById(R.id.btn_query);
+    button.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        mLeDeviceListAdapter.setFilterMac(editText.getText().toString());
+      }
+    });
     mHandler = new Handler(Looper.getMainLooper());
     batchId = getIntent().getLongExtra("batchId", 0L);
 
@@ -142,6 +179,7 @@ public class QppBleDeviceListActivity extends ListActivity {
     if(item.getItemId() == R.id.menu_scan){
       mLeDeviceListAdapter.clear();
       scanLeDevice(true);
+
     }else if(item.getItemId() == R.id.menu_stop){
       scanLeDevice(false);
     }
@@ -214,9 +252,23 @@ public class QppBleDeviceListActivity extends ListActivity {
   private  BluetoothLeScanner  mBLEScanner = null;
   private  MyScanCallback   mScanCallback = null;
   private void scanLeDevice(final boolean enable) {
+    if(ContextCompat.checkSelfPermission(this,Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_DENIED){
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.BLUETOOTH_SCAN},100);
+            return;
+        }
+    }
+    System.out.println("开始刷新--------》");
     if (enable) {
       // Stops scanning after a pre-defined scan period.
       mHandler.postDelayed(new Runnable() {
+        @Override
+        public void run() {
+          stopScan();
+        }
+      },SCAN_PERIOD);
+      mHandler.post(new Runnable() {
         @Override public void run() {
           mScanning.set(false);
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -244,7 +296,7 @@ public class QppBleDeviceListActivity extends ListActivity {
           mScanning.set(true);
           invalidateOptionsMenu();
         }
-      }, SCAN_PERIOD);
+      });
 
       mScanning.set(true);
     //  mBluetoothAdapter.
@@ -291,14 +343,50 @@ public class QppBleDeviceListActivity extends ListActivity {
   private class LeDeviceListAdapter extends BaseAdapter {
     private ArrayList<BleDevice> mLeDevices;
     private LayoutInflater mInflator;
+
+
     private   String   selectMac;
+
+    private  String  filterMac;
+
+    public String getFilterMac() {
+      return filterMac;
+    }
+
+    public void setFilterMac(String filterMac) {
+      boolean change = TextUtils.equals(filterMac,this.filterMac);
+      if(change){
+        ArrayList<BleDevice>  list = new ArrayList<>();
+        Iterator<BleDevice> iterator =mLeDeviceListAdapter.mLeDevices.iterator();
+        while (iterator.hasNext()){
+          BleDevice bleDevice = iterator.next();
+          if(null != bleDevice){
+            if(TextUtils.isEmpty(filterMac)){
+              list.add(bleDevice);
+            }else{
+              if(bleDevice.device.getAddress().contains(filterMac)){
+                list.add(bleDevice);
+              }
+            }
+
+          }
+        }
+        mLeDevices.clear();
+        mLeDevices.addAll(list);
+        notifyDataSetChanged();
+      }
+      this.filterMac = filterMac;
+    }
 
     public String getSelectMac() {
       return selectMac;
     }
 
     public void setSelectMac(String selectMac) {
+
       this.selectMac = selectMac;
+      this.notifyDataSetChanged();
+
     }
 
     public LeDeviceListAdapter() {
@@ -308,15 +396,31 @@ public class QppBleDeviceListActivity extends ListActivity {
     }
 
     public void addDevice(BleDevice device) {
+      System.out.println("addDevice="+device.device.getAddress());
       BluetoothDevice dev = device.device;
-      for (int i = 0; i < mLeDevices.size(); i++) {
-         BleDevice bleDevice = mLeDeviceListAdapter.getDevice(i);
-        if (dev.getAddress().equalsIgnoreCase(bleDevice.device.getAddress())) {
-          return;
+      Iterator<BleDevice> iterator =mLeDeviceListAdapter.mLeDevices.iterator();
+      while (iterator.hasNext()){
+        BleDevice bleDevice = iterator.next();
+        if(null != bleDevice){
+          if (dev.getAddress().equalsIgnoreCase(bleDevice.device.getAddress())) {
+//            stopScan();
+            return;
+          }
         }
       }
-      mLeDevices.add(device);
-      notifyDataSetChanged();
+
+      System.out.println("添加新设备="+device.device.getAddress());
+      if(!TextUtils.isEmpty(filterMac) ){
+        if(device.device.getAddress().contains(filterMac)){
+          mLeDevices.add(device);
+          notifyDataSetChanged();
+        }
+
+      }else{
+        mLeDevices.add(device);
+        notifyDataSetChanged();
+      }
+
     }
 
     public BleDevice getDevice(int position) {
@@ -418,6 +522,7 @@ public class QppBleDeviceListActivity extends ListActivity {
 
     @Override
     public void onLeScan(final BluetoothDevice device, final int rssi, byte[] scanRecord) {
+      System.out.println("onLeScan="+mScanning.get());
       if(!mScanning.get()){
         return;
       }
@@ -428,10 +533,11 @@ public class QppBleDeviceListActivity extends ListActivity {
         @Override public void run() {
 
            BleDevice bleDevice = new BleDevice();
-          bleDevice.device = device;
-          bleDevice.rssi = rssi;
-          bleDevice.repairState = null == repairCache.get(device.getAddress())?0:repairCache.get(device.getAddress());
-          mLeDeviceListAdapter.addDevice(bleDevice);
+           bleDevice.device = device;
+           bleDevice.rssi = rssi;
+           bleDevice.repairState = null == repairCache.get(device.getAddress())?0:repairCache.get(device.getAddress());
+           mLeDeviceListAdapter.addDevice(bleDevice);
+
 
         }
       });
@@ -451,7 +557,19 @@ public class QppBleDeviceListActivity extends ListActivity {
     TextView rssi;
   }
 
+
+  public void stopScan(){
+    mScanning.set(false);
+    if(null != mBLEScanner){
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        mBLEScanner.stopScan(mScanCallback);
+      }
+    }else{
+      mBluetoothAdapter.stopLeScan(mLeScanCallback);
+    }
+  }
   @Override public void onBackPressed() {
+    mHandler.removeCallbacksAndMessages(null);
     mScanning.set(false);
     if(null != mBLEScanner){
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

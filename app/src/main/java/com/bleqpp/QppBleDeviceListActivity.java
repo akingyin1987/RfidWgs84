@@ -259,7 +259,7 @@ public class QppBleDeviceListActivity extends ListActivity {
             return;
         }
     }
-    System.out.println("开始刷新--------》");
+
     if (enable) {
       // Stops scanning after a pre-defined scan period.
       mHandler.postDelayed(new Runnable() {
